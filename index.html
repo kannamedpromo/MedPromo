@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MedPromo">
+<meta name="theme-color" content="#1a2d40">
+<title>MedPromo — Visual Product Promotion Manager</title>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf3;
+    --accent: #1a6b8a;
+    --accent2: #2da58e;
+    --accent3: #e87c3e;
+    --text: #1a2332;
+    --text2: #5a6a7a;
+    --border: #d0dae5;
+    --danger: #e05252;
+    --shadow: 0 2px 16px rgba(26,107,138,0.10);
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #1a2d40 0%, #1a6b8a 60%, #2da58e 100%);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(26,43,64,0.25);
+  }
+  header h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 1.7rem; letter-spacing: -.5px; }
+  header span { font-size: .85rem; opacity: .75; margin-top: 2px; display: block; }
+  .header-stats { display: flex; gap: 24px; }
+  .stat { text-align: center; }
+  .stat .n { font-size: 1.6rem; font-weight: 700; }
+  .stat .l { font-size: .72rem; opacity: .7; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; min-height: calc(100vh - 70px); }
+
+  /* ── SIDEBAR ── */
+  aside {
+    width: 230px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sidebar-label {
+    font-size: .7rem; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    padding: 8px 20px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all .18s; font-size: .92rem;
+  }
+  .nav-item:hover { background: var(--bg); }
+  .nav-item.active { border-left-color: var(--accent); background: #e3f0f6; color: var(--accent); font-weight: 600; }
+  .nav-item .icon { font-size: 1.15rem; }
+  .specialty-dot {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── MAIN ── */
+  main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 1.5rem; margin-bottom: 6px; }
+  .sub { color: var(--text2); font-size: .9rem; margin-bottom: 22px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  .card-title { font-weight: 700; font-size: 1rem; margin-bottom: 14px; color: var(--accent); }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: .8rem; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; }
+  input, select, textarea {
+    padding: 9px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: .92rem;
+    color: var(--text);
+    background: var(--bg);
+    transition: border-color .15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); background: #fff; }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .btn {
+    padding: 10px 22px; border: none; border-radius: 8px;
+    font-family: inherit; font-size: .9rem; font-weight: 600;
+    cursor: pointer; transition: all .18s; display: inline-flex;
+    align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #15587a; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,107,138,.3); }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-success { background: var(--accent2); color: #fff; }
+  .btn-success:hover { background: #239e88; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #c74444; }
+  .btn-sm { padding: 6px 12px; font-size: .8rem; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* ── PRODUCT TABLE ── */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .product-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    transition: box-shadow .18s, border-color .18s;
+    cursor: pointer;
+  }
+  .product-card:hover { box-shadow: var(--shadow); border-color: var(--accent); }
+  .product-card.selected { border-color: var(--accent2); background: #edf8f6; }
+  .product-img {
+    width: 100%; height: 110px; object-fit: cover;
+    border-radius: 8px; margin-bottom: 8px; background: var(--surface2);
+  }
+  .product-img-mosaic {
+    display: grid; gap: 3px; margin-bottom: 8px; border-radius: 8px; overflow: hidden; height: 110px;
+  }
+  .product-img-mosaic.n1 { grid-template-columns: 1fr; }
+  .product-img-mosaic.n2 { grid-template-columns: 1fr 1fr; }
+  .product-img-mosaic.n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+  .product-img-mosaic.n3 img:first-child { grid-row: 1 / 3; }
+  .product-img-mosaic img { width: 100%; height: 100%; object-fit: cover; background: var(--surface2); }
+  .img-upload-box {
+    border: 1.5px dashed var(--border); border-radius: 8px;
+    padding: 14px; text-align: center; cursor: pointer;
+    background: var(--bg); transition: border-color .15s;
+  }
+  .img-upload-box:hover { border-color: var(--accent); }
+  .img-upload-box.full { border-color: var(--accent2); cursor: default; }
+  .img-preview-row {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center;
+  }
+  .img-thumb-wrap { position: relative; width: 90px; height: 90px; }
+  .img-thumb-wrap img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border);
+  }
+  .img-thumb-remove {
+    position: absolute; top: -6px; right: -6px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--danger); color: #fff; border: none;
+    font-size: .7rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .img-preview {
+    width: 100%; max-height: 140px; object-fit: contain;
+    border-radius: 8px; margin-top: 8px; display: none;
+  }
+  .product-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: .72rem; font-weight: 700; margin-bottom: 6px;
+    color: #fff;
+  }
+  .product-name { font-weight: 700; font-size: .95rem; margin-bottom: 2px; }
+  .product-generic { font-size: .78rem; color: var(--text2); margin-bottom: 6px; }
+  .product-price { font-size: .82rem; color: var(--accent3); font-weight: 700; }
+  .product-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .del-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; cursor: pointer;
+    font-size: 1rem; color: var(--text2); opacity: 0;
+    transition: opacity .15s;
+  }
+  .product-card:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--danger); }
+
+  /* ── SEARCH / FILTER ── */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .toolbar select { min-width: 150px; }
+
+  /* ── SET BUILDER ── */
+  .set-builder { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pool-box, .set-box {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    min-height: 300px;
+    background: var(--bg);
+  }
+  .pool-box h4, .set-box h4 { font-size: .85rem; font-weight: 700; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .8px; }
+  .mini-product {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .85rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .mini-product:hover { border-color: var(--accent2); background: #edf8f6; }
+  .mini-add { font-size: 1rem; color: var(--accent2); font-weight: 700; }
+  .mini-remove { font-size: 1rem; color: var(--danger); font-weight: 700; }
+
+  /* ── SETS LIST ── */
+  .set-list-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .set-info { flex: 1; }
+  .set-name { font-weight: 700; font-size: 1rem; }
+  .set-meta { font-size: .8rem; color: var(--text2); margin-top: 2px; }
+  .set-products-preview { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .73rem; font-weight: 600; background: var(--surface2); color: var(--text2); }
+
+  /* ── PRESENTATION ── */
+  /* ══════════════════════════════════════════
+     PRESENTATION — FULL SCREEN
+  ══════════════════════════════════════════ */
+  #presentation-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: #0d1b2a;
+    z-index: 1000;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: pan-y;
+    user-select: none;
+  }
+  #presentation-overlay.open { display: flex; }
+
+  /* Top bar */
+  .pres-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 14px; flex-shrink: 0;
+    background: rgba(0,0,0,.40);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .pres-topbar-left { display: flex; gap: 6px; align-items: center; }
+  /* Icon-only circle buttons for Grid / Single */
+  .pres-view-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,.25);
+    background: transparent; color: rgba(255,255,255,.7);
+    font-size: 1rem; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .15s; padding: 0;
+  }
+  .pres-view-btn.active { background: #2da58e; color: #fff; border-color: #2da58e; }
+  .pres-home-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.08);
+    color: #fff; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .18s; flex-shrink: 0;
+  }
+  .pres-home-btn:hover { background: rgba(255,255,255,.22); border-color: #fff; }
+  .pres-topbar-center {
+    font-size: .75rem; color: rgba(255,255,255,.4);
+    text-align: center; line-height: 1.3; flex: 1; padding: 0 8px;
+  }
+  .pres-topbar-center strong { color: rgba(255,255,255,.7); font-size: .8rem; }
+
+  /* Slide area */
+  .pres-slide {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 18px 16px 10px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── GRID VIEW ── */
+  .pres-products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px; align-content: start;
+  }
+  .pres-product-card {
+    background: rgba(255,255,255,.09);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 12px; padding: 14px;
+    transition: background .2s;
+  }
+  .pres-product-card:hover { background: rgba(255,255,255,.16); }
+  .pres-badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 8px; display: inline-block; color: #fff; }
+
+  /* ROW 1 — Brand Names: bright white, bold */
+  .pres-row1 { margin-bottom: 5px; }
+  .pres-brand-name { font-size: 1rem; font-weight: 800; color: #ffffff; line-height: 1.25; }
+
+  /* ROW 2 — Generic Names: bright cyan */
+  .pres-row2 { margin-bottom: 6px; }
+  .pres-generic-name { font-size: .8rem; font-weight: 600; color: #7ee8d0; line-height: 1.3; }
+
+  /* ROW 3 — Pack / MRP / Inv Rate: all bright orange */
+  .pres-row3 { margin-top: 2px; }
+  .pres-price-block .price-tag-list { gap: 2px; }
+  .pres-price-block .price-tag-row { font-size: .8rem; gap: 6px; flex-wrap: wrap; }
+  .pres-price-block .price-tag-row .strength,
+  .pres-price-block .price-tag-row .mrp,
+  .pres-price-block .price-tag-row .inv,
+  .pres-price-block .price-tag-row .legacy-price { color: #ffb347 !important; font-weight: 700; }
+  .pres-price-block .price-tag-row .inv { font-weight: 800; }
+  .pres-price-block .price-brand-label { color: #7ee8d0; font-size: .68rem; }
+
+  /* ── SINGLE PRODUCT FULL SCREEN ── */
+  .single-product-view {
+    flex: 1; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 12px; padding: 10px 24px 16px;
+  }
+  .single-product-img {
+    max-width: 90%; max-height: 52vh; object-fit: contain;
+    border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,.45);
+  }
+  .single-img-thumbs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .single-img-thumb {
+    width: 52px; height: 52px; object-fit: cover;
+    border-radius: 8px; border: 2px solid rgba(255,255,255,.2);
+    cursor: pointer; transition: border-color .15s;
+  }
+  .single-img-thumb.active { border-color: #2da58e; }
+
+  /* ROW 1 — Brand Names: large, bright white */
+  .single-row1 { text-align: center; }
+  .single-brand-name { font-size: 2rem; font-weight: 800; color: #ffffff; line-height: 1.2; }
+
+  /* ROW 2 — Generic Names: bright cyan, clearly readable */
+  .single-row2 { text-align: center; }
+  .single-generic-name { font-size: 1rem; font-weight: 600; color: #7ee8d0; line-height: 1.4; }
+
+  /* ROW 3 — Pack / MRP / Inv Rate: bright orange, centered */
+  .single-row3 { text-align: center; }
+  .single-rates { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .single-rates .price-tag-row { font-size: 1rem; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .single-rates .price-tag-row .strength,
+  .single-rates .price-tag-row .mrp,
+  .single-rates .price-tag-row .inv,
+  .single-rates .price-tag-row .legacy-price { color: #ffb347 !important; font-weight: 700; }
+  .single-rates .price-tag-row .inv { font-weight: 800; font-size: 1.1rem; }
+  .single-rates .price-brand-label { color: #7ee8d0; font-size: .8rem; margin-top: 6px; }
+
+  /* Bottom bar — slim counter only */
+  .pres-bottombar {
+    display: flex; align-items: center; justify-content: center;
+    padding: 5px 20px 8px; flex-shrink: 0;
+    background: rgba(0,0,0,.25);
+  }
+  .pres-slide-num { color: rgba(255,255,255,.4); font-size: .75rem; text-align: center; }
+  /* Swipe hint */
+  .swipe-hint { font-size: .68rem; color: rgba(255,255,255,.25); text-align: center; padding: 3px 0; letter-spacing: .5px; }
+
+  /* ── IMAGE SIZE CONTROL ── */
+  .img-size-control {
+    display: flex; align-items: center; gap: 8px;
+    color: rgba(255,255,255,.5); font-size: .75rem;
+  }
+  .img-size-control input[type="range"] { width: 80px; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center; padding: 50px 20px; color: var(--text2);
+  }
+  .empty .emoji { font-size: 3rem; margin-bottom: 10px; }
+  .empty p { font-size: .95rem; }
+
+  /* ── SPECIALTY COLORS ── */
+  .s0 { background: #e74c3c; }
+  .s1 { background: #3498db; }
+  .s2 { background: #2ecc71; }
+  .s3 { background: #9b59b6; }
+  .s4 { background: #f39c12; }
+  .s5 { background: #1abc9c; }
+  .s6 { background: #e67e22; }
+  .s7 { background: #34495e; }
+  .s8 { background: #c0392b; }
+  .s9 { background: #16a085; }
+
+  /* ── PDF CATALOGUE ── */
+  #catalogue-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: #4a5568;
+    z-index: 1100;
+    flex-direction: column;
+  }
+  #catalogue-overlay.open { display: flex; }
+  .catalogue-toolbar {
+    background: #1a2332; color: #fff;
+    padding: 12px 20px; display: flex;
+    align-items: center; justify-content: space-between;
+    flex-shrink: 0; flex-wrap: wrap; gap: 10px;
+  }
+  .catalogue-toolbar-title { font-size: .85rem; opacity: .85; }
+  .catalogue-toolbar-actions { display: flex; gap: 8px; }
+  .catalogue-scroll {
+    flex: 1; overflow-y: auto; padding: 30px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .catalogue-page {
+    width: 210mm; min-height: 297mm; /* A4 */
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,.3);
+    padding: 10mm 12mm;
+    box-sizing: border-box;
+  }
+  .cat-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 3px solid var(--accent); padding-bottom: 8px; margin-bottom: 10px;
+  }
+  .cat-header h1 { font-size: 1.3rem; color: var(--accent); font-family: Georgia, 'Times New Roman', serif; }
+  .cat-header .cat-meta { font-size: .75rem; color: var(--text2); text-align: right; }
+
+  /* Products At Glance — each product in a 10cm × 5cm box */
+  .pag-box {
+    width: 100%;
+    height: 50mm; /* 5cm */
+    border: 1.5px solid #333;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 45mm 1fr; /* image col + info col */
+    margin-bottom: 4mm;
+    page-break-inside: avoid;
+    overflow: hidden;
+  }
+  .pag-img-col {
+    border-right: 1px solid #ccc;
+    display: flex; align-items: center; justify-content: center;
+    background: #f8f8f8; overflow: hidden;
+  }
+  .pag-img-col img { width: 100%; height: 100%; object-fit: contain; }
+  .pag-img-none { font-size: .7rem; color: #aaa; text-align: center; padding: 4px; }
+  .pag-info-col {
+    padding: 3mm 4mm;
+    display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    overflow: hidden;
+  }
+  /* Row 1: Brand Names */
+  .pag-brands { display: flex; flex-direction: column; gap: 0; }
+  .pag-brand { font-size: 11pt; font-weight: 800; color: #111; line-height: 1.2; }
+  /* Row 2: Composition/Generic */
+  .pag-generics { display: flex; flex-direction: column; }
+  .pag-generic { font-size: 8pt; color: #444; font-weight: 500; line-height: 1.3; }
+  /* Row 3: Pack + Inv Rate + MRP — per brand */
+  .pag-rates { margin-top: 2px; }
+  .pag-rate-brand { margin-bottom: 2px; }
+  .pag-rate-brand-name { font-size: 7.5pt; font-weight: 700; color: #1a6b8a; }
+  .pag-rate-row { display: flex; gap: 6px; flex-wrap: wrap; font-size: 8pt; line-height: 1.4; }
+  .pag-pack { color: #333; font-weight: 600; }
+  .pag-mrp { color: #555; }
+  .pag-inv { color: #e87c3e; font-weight: 700; }
+  .cat-footer { margin-top: 6px; font-size: .7rem; color: var(--text2); text-align: center; border-top: 1px solid #ccc; padding-top: 6px; }
+
+  [contenteditable="true"]:hover { outline: 1.5px dashed var(--accent2); background: #f3fbfa; cursor: text; }
+  [contenteditable="true"]:focus { outline: 1.5px solid var(--accent2); background: #fff; }
+
+  @media print {
+    body * { visibility: hidden; }
+    #catalogue-overlay, #catalogue-overlay * { visibility: visible; }
+    #catalogue-overlay {
+      display: flex !important;
+      position: absolute; inset: 0; background: #fff;
+    }
+    .catalogue-toolbar, .catalogue-scroll { display: none !important; }
+    .catalogue-page {
+      box-shadow: none; width: 100%; min-height: 0; margin: 0; padding: 10mm 12mm;
+      position: absolute; top: 0; left: 0; visibility: visible;
+    }
+    @page { size: A4; margin: 0; }
+  }
+
+  /* ── BRAND BLOCK (with nested MRP rows) ── */
+  .brand-block {
+    border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; background: var(--bg);
+  }
+  .brand-block-header {
+    display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;
+    align-items: center; margin-bottom: 10px;
+  }
+  .brand-block-header input { width: 100%; }
+  .brand-block-remove {
+    background: none; border: none; color: var(--danger);
+    cursor: pointer; font-size: 1.1rem; padding: 4px;
+  }
+  .brand-mrp-label {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px;
+    font-size: .7rem; color: var(--text2); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px;
+    padding-left: 4px;
+  }
+  .brand-mrp-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px;
+    align-items: center; margin-bottom: 6px;
+  }
+  .brand-mrp-row input { width: 100%; }
+  .brand-mrp-inv {
+    background: var(--surface2); border-radius: 6px; padding: 8px 10px;
+    font-size: .88rem; font-weight: 700; color: var(--accent2);
+  }
+  .brand-mrp-remove {
+    background: none; border: none; color: var(--danger);
+    cursor: pointer; font-size: 1rem; padding: 2px;
+  }
+  .brand-add-mrp-btn {
+    font-size: .75rem; padding: 4px 10px; margin-top: 2px;
+  }
+
+  /* ── MRP / INVOICE RATE ROWS (legacy standalone - kept for backward compat display) ── */
+  .mrp-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px;
+    align-items: center; margin-bottom: 8px;
+  }
+  .mrp-row input { width: 100%; }
+  .mrp-row .invoice-display {
+    background: var(--surface2); border-radius: 8px; padding: 9px 13px;
+    font-size: .92rem; font-weight: 700; color: var(--accent2);
+  }
+  .mrp-row-remove {
+    background: none; border: none; color: var(--danger); cursor: pointer;
+    font-size: 1.1rem; padding: 4px;
+  }
+  .mrp-label-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px;
+    font-size: .72rem; color: var(--text2); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
+  }
+  .price-tag-list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .price-brand-label { font-size: .7rem; font-weight: 700; color: var(--accent); margin-top: 3px; text-transform: uppercase; letter-spacing: .4px; }
+  .price-tag-row { font-size: .78rem; display: flex; gap: 8px; align-items: baseline; }
+  .price-tag-row .strength { color: var(--text2); min-width: 50px; }
+  .price-tag-row .mrp { color: var(--text2); }
+  .price-tag-row .inv { color: var(--accent3); font-weight: 700; }
+
+  /* ── MISC ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .count-badge {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 20px; font-size: .72rem; font-weight: 700;
+    padding: 1px 7px; margin-left: 6px;
+  }
+  .alert {
+    padding: 10px 16px; border-radius: 8px; font-size: .88rem;
+    margin-bottom: 14px; display: none;
+  }
+  .alert.success { background: #d4edda; color: #155724; display: block; }
+  .alert.error   { background: #f8d7da; color: #721c24; display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>💊 MedPromo</h1>
+    <span>Visual Product Promotion Manager</span>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="n" id="stat-products">0</div><div class="l">Products</div></div>
+    <div class="stat"><div class="n" id="stat-specialties">0</div><div class="l">Specialties</div></div>
+    <div class="stat"><div class="n" id="stat-sets">0</div><div class="l">Promo Sets</div></div>
+  </div>
+</header>
+
+<div class="app">
+  <aside>
+    <div class="sidebar-label">Navigation</div>
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <span class="icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('products')" id="nav-products">
+      <span class="icon">💊</span> Products
+    </div>
+    <div class="nav-item" onclick="showPage('sets')" id="nav-sets">
+      <span class="icon">📋</span> Promo Sets
+    </div>
+    <div class="nav-item" onclick="showPage('present')" id="nav-present">
+      <span class="icon">🖥️</span> Present
+    </div>
+    <div class="sidebar-label" style="margin-top:12px">Specialties</div>
+    <div id="specialty-nav"></div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <h2>Good Evening! 👋</h2>
+      <p class="sub">Manage your products and build specialty-wise promotion sets.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+        <div class="card" style="border-left:4px solid var(--accent);padding:18px">
+          <div style="font-size:2rem;font-weight:700;color:var(--accent)" id="db-products">0</div>
+          <div style="color:var(--text2);font-size:.85rem">Total Products</div>
+        </div>
+        <div class="card" style="border-left:4px solid var(--accent2);padding:18px">
+          <div style="font-size:2rem;font-weight:700;color:var(--accent2)" id="db-specialties">0</div>
+          <div style="color:var(--text2);font-size:.85rem">Specialties</div>
+        </div>
+        <div class="card" style="border-left:4px solid var(--accent3);padding:18px">
+          <div style="font-size:2rem;font-weight:700;color:var(--accent3)" id="db-sets">0</div>
+          <div style="color:var(--text2);font-size:.85rem">Promo Sets</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚡ Quick Start Guide</div>
+        <ol style="padding-left:18px;line-height:2;color:var(--text2);font-size:.9rem">
+          <li>Go to <strong>Products</strong> → Add your medicines with specialty tags</li>
+          <li>Go to <strong>Promo Sets</strong> → Create sets for each doctor/specialty</li>
+          <li>Go to <strong>Present</strong> → Launch a full-screen visual presentation</li>
+        </ol>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="showPage('products')">➕ Add Products</button>
+          <button class="btn btn-success" onclick="showPage('sets')">📋 Create Promo Set</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📱 Install MedPromo as App</div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">On your Samsung tablet: open this file in <strong>Chrome</strong>, tap the menu (⋮) → <strong>"Add to Home screen"</strong>. MedPromo will appear as an app icon — tap it to open instantly, full-screen, like a native app. No internet needed after that.</p>
+        <button class="btn btn-primary" id="install-btn" style="display:none" onclick="triggerInstall()">📲 Install App Now</button>
+        <div id="install-note" style="font-size:.8rem;color:var(--accent2)"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📦 Sample Data — Load to Get Started</div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Load sample products across common specialties to explore the app.</p>
+        <button class="btn btn-secondary" onclick="loadSampleData()">Load Sample Products & Sets</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔄 Backup &amp; Transfer to Another Device</div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Export all your products and promo sets (including images) into one file. Move it to your tablet via email, WhatsApp, or Google Drive, then import it there.</p>
+        <div id="backup-alert" class="alert"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="exportData()">⬇️ Export Backup File</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('import-file-input').click()">⬆️ Import Backup File</button>
+          <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS PAGE -->
+    <div class="page" id="page-products">
+      <h2>Products <span class="count-badge" id="products-count">0</span></h2>
+      <p class="sub">Add and manage all your medicine products here.</p>
+
+      <div class="card">
+        <div class="card-title" id="add-product-title">➕ Add New Product</div>
+        <div id="product-alert" class="alert"></div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Product Images (up to 3)</label>
+            <div class="img-upload-box" id="img-upload-box" onclick="document.getElementById('p-image-input').click()">
+              <input type="file" id="p-image-input" accept="image/*" multiple style="display:none" onchange="previewProductImages(this)">
+              <span id="img-upload-text">📷 Click to upload product images (max 3)</span>
+              <div id="img-preview-row" class="img-preview-row"></div>
+            </div>
+          </div>
+          <div class="form-group full">
+            <label>Brand Names, Generic Names &amp; MRP per Brand *</label>
+            <div style="font-size:.75rem;color:var(--text2);margin-bottom:8px">Each brand can have its own Pack sizes and MRP. Invoice Rate = MRP − 17.35% (auto-calculated).</div>
+            <div id="brand-rows-container"></div>
+            <button type="button" class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addBrandRow()">➕ Add Brand / Generic Row</button>
+          </div>
+          <div class="form-group">
+            <label>Specialty *</label>
+            <input type="text" id="p-specialty" placeholder="e.g. Cardiology, ENT, Ortho..." list="specialty-list">
+            <datalist id="specialty-list"></datalist>
+          </div>
+          <div class="form-group">
+            <label>Category / Type</label>
+            <input type="text" id="p-category" placeholder="e.g. Antibiotic, Analgesic, Vitamin">
+          </div>
+          <div class="form-group">
+            <label>Dosage / Strength</label>
+            <input type="text" id="p-dosage" placeholder="e.g. 500mg, 10ml Syrup">
+          </div>
+          <div class="form-group full">
+            <label>Key Features / USP</label>
+            <textarea id="p-usp" placeholder="e.g. Fast acting, Sugar-free, Once daily dosing..."></textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="add-product-btn" onclick="addProduct()">💊 Add Product</button>
+          <button class="btn btn-secondary" onclick="clearProductForm()">Clear</button>
+          <button class="btn btn-secondary" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">✕ Cancel Edit</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="search-products" placeholder="🔍 Search products..." oninput="renderProducts()">
+        <select id="filter-specialty" onchange="renderProducts()">
+          <option value="">All Specialties</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="clearAllProducts()" style="margin-left:auto">🗑 Clear All</button>
+      </div>
+
+      <div id="product-grid" class="product-grid"></div>
+    </div>
+
+    <!-- SETS PAGE -->
+    <div class="page" id="page-sets">
+      <h2>Promo Sets <span class="count-badge" id="sets-count">0</span></h2>
+      <p class="sub">Create specialty-wise product sets to show each doctor.</p>
+
+      <div class="card">
+        <div class="card-title">➕ Create New Promo Set</div>
+        <div id="set-alert" class="alert"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Set Name *</label>
+            <input type="text" id="s-name" placeholder="e.g. Cardiologist Visit — Dr. Sharma">
+          </div>
+          <div class="form-group">
+            <label>Doctor / Target</label>
+            <input type="text" id="s-doctor" placeholder="e.g. Dr. Ramesh Kumar">
+          </div>
+          <div class="form-group">
+            <label>Specialty Focus</label>
+            <select id="s-specialty" onchange="filterPoolBySpecialty()">
+              <option value="">All Specialties</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date of Visit</label>
+            <input type="date" id="s-date">
+          </div>
+        </div>
+        <hr>
+        <div class="card-title" style="margin-bottom:10px">Select Products for this Set</div>
+        <div class="set-builder">
+          <div class="pool-box">
+            <h4>Available Products — click to add</h4>
+            <input type="text" placeholder="Filter..." id="pool-search" oninput="renderPool()" style="width:100%;margin-bottom:8px">
+            <div id="product-pool"></div>
+          </div>
+          <div class="set-box">
+            <h4>Selected Products <span class="count-badge" id="selected-count">0</span></h4>
+            <div id="product-set-list"></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveSet()">💾 Save Promo Set</button>
+          <button class="btn btn-secondary" onclick="clearSetForm()">Clear</button>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:12px;font-size:1.1rem">Saved Sets</h3>
+      <div id="sets-list"></div>
+    </div>
+
+    <!-- PRESENT PAGE -->
+    <div class="page" id="page-present">
+      <h2>🖥️ Present</h2>
+      <p class="sub">Launch a full-screen visual presentation of any promo set, or present all products of a specialty directly.</p>
+
+      <div class="card">
+        <div class="card-title">🏷️ Present by Specialty</div>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Skip building a set — instantly present every product tagged under one specialty.</p>
+        <div class="toolbar" style="margin-bottom:0">
+          <select id="present-specialty-select" style="min-width:220px"></select>
+          <button class="btn btn-success" onclick="launchSpecialtyPresentation()">▶ Present This Specialty</button>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:12px;font-size:1.1rem">Saved Promo Sets</h3>
+      <div id="present-sets-list"></div>
+    </div>
+  </main>
+</div>
+
+<!-- PRESENTATION OVERLAY -->
+<div id="presentation-overlay">
+
+  <!-- TOP BAR: view toggle + set info + home exit -->
+  <div class="pres-topbar">
+    <div class="pres-topbar-left">
+      <button id="view-grid-btn" class="pres-view-btn active" onclick="setViewMode('grid')" title="Grid View">⊞</button>
+      <button id="view-single-btn" class="pres-view-btn" onclick="setViewMode('single')" title="Single Product">◻</button>
+      <div class="img-size-control">
+        <span>🔍</span>
+        <input type="range" id="img-size-slider" min="50" max="100" value="100" oninput="updateImageSize(this.value)">
+      </div>
+    </div>
+    <div class="pres-topbar-center">
+      <strong id="pres-title"></strong><br>
+      <span id="pres-count"></span>
+    </div>
+    <button class="pres-home-btn" onclick="closePresentation()" title="Exit Presentation">🏠</button>
+  </div>
+
+  <!-- SLIDE AREA (swipeable) -->
+  <div class="pres-slide" id="pres-slide">
+    <div class="pres-products" id="pres-products"></div>
+    <div class="single-product-view" id="single-product-view"></div>
+  </div>
+
+  <!-- SWIPE HINT + COUNTER -->
+  <div class="swipe-hint">← swipe to navigate →</div>
+  <div class="pres-bottombar">
+    <span class="pres-slide-num" id="pres-slide-num"></span>
+  </div>
+</div>
+
+<!-- CATALOGUE OVERLAY -->
+<div id="catalogue-overlay">
+  <div class="catalogue-toolbar">
+    <span class="catalogue-toolbar-title">📄 Product Catalogue Preview — click any text to edit before printing</span>
+    <div class="catalogue-toolbar-actions">
+      <button class="btn btn-success btn-sm" onclick="printCatalogue()">🖨️ Print / Save as PDF</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeCataloguePreview()">✕ Close</button>
+    </div>
+  </div>
+  <div class="catalogue-scroll">
+    <div class="catalogue-page" id="catalogue-page"></div>
+  </div>
+</div>
+
+
+<script>
+// ── DATA STORE ──
+let products = [];
+let promoSets = [];
+let currentSetProducts = []; // IDs selected for new set
+let currentProductImages = []; // array of up to 3 base64 images for product being added
+let currentBrandRows = []; // array of {id, brand, generic, mrpRows:[]} for product being added/edited
+const INVOICE_DISCOUNT_PCT = 17.35; // Invoice Rate = MRP - 17.35%
+let editingProductId = null; // null = adding new, otherwise editing this product's id
+
+// ── INDEXEDDB STORAGE ENGINE ──
+// Replaces localStorage so we can store hundreds of MB of product images
+// without hitting the ~5-10MB browser quota.
+const DB_NAME = 'medpromo_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'medpromo_store';
+let dbInstance = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onerror = (e) => reject(e.target.error);
+  });
+}
+
+function idbGet(key) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbSet(key, value) {
+  return new Promise((resolve, reject) => {
+    const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function initStorage() {
+  try {
+    dbInstance = await openDB();
+    const savedProducts = await idbGet('medpromo_products');
+    const savedSets = await idbGet('medpromo_sets');
+
+    // One-time migration from older localStorage-based version, if present
+    if (!savedProducts && !savedSets) {
+      const oldProducts = localStorage.getItem('medpromo_products');
+      const oldSets = localStorage.getItem('medpromo_sets');
+      if (oldProducts || oldSets) {
+        products = JSON.parse(oldProducts || '[]');
+        promoSets = JSON.parse(oldSets || '[]');
+        await idbSet('medpromo_products', products);
+        await idbSet('medpromo_sets', promoSets);
+        localStorage.removeItem('medpromo_products');
+        localStorage.removeItem('medpromo_sets');
+      }
+    } else {
+      products = savedProducts || [];
+      promoSets = savedSets || [];
+    }
+  } catch (err) {
+    console.error('IndexedDB init failed, falling back to localStorage:', err);
+    products = JSON.parse(localStorage.getItem('medpromo_products') || '[]');
+    promoSets = JSON.parse(localStorage.getItem('medpromo_sets') || '[]');
+  }
+  updateStats();
+  updateSidebarSpecialties();
+  updateSelectOptions();
+  renderProducts();
+  renderSets();
+  renderPresentPage();
+  renderBrandRows(); // ensures at least one empty Brand/Generic+MRP block shows in the Add Product form
+}
+
+const MAX_PRODUCT_IMAGES = 3;
+
+function previewProductImages(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  const remainingSlots = MAX_PRODUCT_IMAGES - currentProductImages.length;
+  if (remainingSlots <= 0) {
+    alert(`You can upload a maximum of ${MAX_PRODUCT_IMAGES} images per product.`);
+    input.value = '';
+    return;
+  }
+
+  const toProcess = files.slice(0, remainingSlots);
+  if (files.length > remainingSlots) {
+    alert(`Only ${remainingSlots} more image(s) can be added (max ${MAX_PRODUCT_IMAGES} per product). The rest were skipped.`);
+  }
+
+  toProcess.forEach(file => {
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`"${file.name}" is larger than 5MB and was skipped.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      currentProductImages.push(e.target.result);
+      renderImagePreviewRow();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function removePreviewImage(index) {
+  currentProductImages.splice(index, 1);
+  renderImagePreviewRow();
+}
+
+function renderImagePreviewRow() {
+  const row = document.getElementById('img-preview-row');
+  row.innerHTML = currentProductImages.map((img, i) => `
+    <div class="img-thumb-wrap">
+      <img src="${img}">
+      <button class="img-thumb-remove" onclick="event.stopPropagation(); removePreviewImage(${i})" title="Remove">✕</button>
+    </div>
+  `).join('');
+
+  const box = document.getElementById('img-upload-box');
+  const text = document.getElementById('img-upload-text');
+  if (currentProductImages.length >= MAX_PRODUCT_IMAGES) {
+    box.classList.add('full');
+    text.textContent = `✓ ${MAX_PRODUCT_IMAGES} images selected (maximum reached)`;
+  } else if (currentProductImages.length > 0) {
+    box.classList.remove('full');
+    text.textContent = `📷 ${currentProductImages.length}/${MAX_PRODUCT_IMAGES} images — click to add more`;
+  } else {
+    box.classList.remove('full');
+    text.textContent = '📷 Click to upload product images (max 3)';
+  }
+}
+
+// ── BRAND BLOCKS (each brand has its own MRP rows) ──
+// currentBrandRows = [{id, brand, generic, mrpRows:[{id,strength,mrp}]}]
+
+function addBrandRow(brand = '', generic = '', mrpRows = []) {
+  currentBrandRows.push({
+    id: Date.now() + Math.random(),
+    brand, generic,
+    mrpRows: mrpRows.length ? mrpRows : [{ id: Date.now() + Math.random(), strength: '', mrp: '' }]
+  });
+  renderBrandRows();
+}
+
+function removeBrandRow(bid) {
+  if (currentBrandRows.length <= 1) { alert('At least one Brand Name is required.'); return; }
+  currentBrandRows = currentBrandRows.filter(r => r.id !== bid);
+  renderBrandRows();
+}
+
+function updateBrandField(bid, field, value) {
+  const b = currentBrandRows.find(r => r.id === bid);
+  if (b) b[field] = value;
+}
+
+function addMrpRowToBrand(bid) {
+  const b = currentBrandRows.find(r => r.id === bid);
+  if (b) { b.mrpRows.push({ id: Date.now() + Math.random(), strength: '', mrp: '' }); renderBrandRows(); }
+}
+
+function removeMrpRowFromBrand(bid, mid) {
+  const b = currentBrandRows.find(r => r.id === bid);
+  if (b && b.mrpRows.length > 1) { b.mrpRows = b.mrpRows.filter(m => m.id !== mid); renderBrandRows(); }
+}
+
+function updateMrpFieldLive(bid, mid, field, value) {
+  const b = currentBrandRows.find(r => r.id === bid);
+  if (!b) return;
+  const m = b.mrpRows.find(r => r.id === mid);
+  if (!m) return;
+  m[field] = value;
+  if (field === 'mrp') {
+    const inv = calcInvoiceRate(value);
+    const el = document.getElementById(`inv-${bid}-${mid}`);
+    if (el) el.textContent = inv === null ? '—' : '₹' + inv.toFixed(2);
+  }
+}
+
+function renderBrandRows() {
+  const container = document.getElementById('brand-rows-container');
+  if (!currentBrandRows.length) {
+    currentBrandRows.push({ id: Date.now() + Math.random(), brand: '', generic: '', mrpRows: [{ id: Date.now() + Math.random(), strength: '', mrp: '' }] });
+  }
+  container.innerHTML = currentBrandRows.map((b, bi) => {
+    const mrpLabel = `<div class="brand-mrp-label"><span>Pack/Strength</span><span>MRP (₹)</span><span>Invoice Rate</span><span></span></div>`;
+    const mrpRowsHtml = b.mrpRows.map(m => {
+      const inv = calcInvoiceRate(m.mrp);
+      const invDisplay = inv === null ? '—' : '₹' + inv.toFixed(2);
+      return `<div class="brand-mrp-row">
+        <input type="text" placeholder="e.g. 10ml" value="${m.strength}" oninput="updateMrpFieldLive(${b.id},${m.id},'strength',this.value)">
+        <input type="number" step="0.01" placeholder="e.g. 120" value="${m.mrp}" oninput="updateMrpFieldLive(${b.id},${m.id},'mrp',this.value)">
+        <div class="brand-mrp-inv" id="inv-${b.id}-${m.id}">${invDisplay}</div>
+        <button type="button" class="brand-mrp-remove" onclick="removeMrpRowFromBrand(${b.id},${m.id})">✕</button>
+      </div>`;
+    }).join('');
+    return `<div class="brand-block">
+      <div class="brand-block-header">
+        <input type="text" placeholder="Brand Name *" value="${b.brand}" oninput="updateBrandField(${b.id},'brand',this.value)">
+        <input type="text" placeholder="Generic / Composition" value="${b.generic}" oninput="updateBrandField(${b.id},'generic',this.value)">
+        <button type="button" class="brand-block-remove" onclick="removeBrandRow(${b.id})">✕</button>
+      </div>
+      ${mrpLabel}${mrpRowsHtml}
+      <button type="button" class="btn btn-secondary btn-sm brand-add-mrp-btn" onclick="addMrpRowToBrand(${b.id})">➕ Add Pack / MRP</button>
+    </div>`;
+  }).join('');
+}
+
+// ── MRP CALCULATION ──
+// Invoice Rate = MRP - 17.35%
+function calcInvoiceRate(mrp) {
+  const num = parseFloat(mrp);
+  if (isNaN(num)) return null;
+  return num - (num * INVOICE_DISCOUNT_PCT / 100);
+}
+
+// ── SPECIALTY COLOR ──
+const specialtyColors = {};
+const colorClasses = ['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+function getSpecialtyColor(spec) {
+  if (!specialtyColors[spec]) {
+    const keys = Object.keys(specialtyColors);
+    specialtyColors[spec] = colorClasses[keys.length % colorClasses.length];
+  }
+  return specialtyColors[spec];
+}
+
+// ── SAVE ──
+function save() {
+  updateStats();
+  updateSidebarSpecialties();
+  updateSelectOptions();
+  // Fire-and-forget async writes to IndexedDB (large capacity for images)
+  if (dbInstance) {
+    idbSet('medpromo_products', products).catch(err => console.error('Save products failed:', err));
+    idbSet('medpromo_sets', promoSets).catch(err => console.error('Save sets failed:', err));
+  }
+}
+
+// ── PAGE NAV ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  if (id === 'products') renderProducts();
+  if (id === 'sets') { renderPool(); renderSets(); }
+  if (id === 'present') renderPresentPage();
+}
+
+// ── STATS ──
+function updateStats() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean);
+  document.getElementById('stat-products').textContent = products.length;
+  document.getElementById('stat-specialties').textContent = specs.length;
+  document.getElementById('stat-sets').textContent = promoSets.length;
+  document.getElementById('db-products').textContent = products.length;
+  document.getElementById('db-specialties').textContent = specs.length;
+  document.getElementById('db-sets').textContent = promoSets.length;
+  document.getElementById('products-count').textContent = products.length;
+  document.getElementById('sets-count').textContent = promoSets.length;
+}
+
+// ── SIDEBAR SPECIALTIES ──
+function updateSidebarSpecialties() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  const nav = document.getElementById('specialty-nav');
+  nav.innerHTML = specs.map(s => `
+    <div class="nav-item" onclick="filterBySpecialty('${s}')">
+      <span class="specialty-dot ${getSpecialtyColor(s)}"></span> ${s}
+    </div>
+  `).join('');
+}
+
+function filterBySpecialty(spec) {
+  showPage('products');
+  document.getElementById('filter-specialty').value = spec;
+  renderProducts();
+}
+
+// ── SELECT OPTIONS ──
+function updateSelectOptions() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  const dl = document.getElementById('specialty-list');
+  dl.innerHTML = specs.map(s => `<option value="${s}">`).join('');
+
+  ['filter-specialty', 's-specialty'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">All Specialties</option>' +
+      specs.map(s => `<option value="${s}" ${s === cur ? 'selected' : ''}>${s}</option>`).join('');
+  });
+
+  const presSpecEl = document.getElementById('present-specialty-select');
+  if (presSpecEl) {
+    const cur = presSpecEl.value;
+    presSpecEl.innerHTML = specs.length
+      ? specs.map(s => `<option value="${s}" ${s === cur ? 'selected' : ''}>${s}</option>`).join('')
+      : '<option value="">No specialties yet</option>';
+  }
+}
+
+// ── ADD / EDIT PRODUCT ──
+function addProduct() {
+  const specialty = document.getElementById('p-specialty').value.trim();
+
+  // Build clean brandRows — each with its own mrpRows
+  const brandRows = currentBrandRows
+    .map(b => {
+      const mrpRows = (b.mrpRows || [])
+        .filter(m => m.mrp !== '' && m.mrp !== null && !isNaN(parseFloat(m.mrp)))
+        .map(m => {
+          const inv = calcInvoiceRate(m.mrp);
+          return {
+            strength: (m.strength || '').trim(),
+            mrp: parseFloat(m.mrp),
+            invoiceRate: inv === null ? null : Math.round(inv * 100) / 100,
+          };
+        });
+      return { brand: b.brand.trim(), generic: b.generic.trim(), mrpRows };
+    })
+    .filter(b => b.brand !== '');
+
+  if (!brandRows.length || !specialty) {
+    showAlert('product-alert', 'At least one Brand Name and Specialty are required.', 'error');
+    return;
+  }
+
+  const data = {
+    brandRows,
+    name: brandRows[0].brand,
+    generic: brandRows[0].generic,
+    specialty,
+    mrpRows: brandRows[0].mrpRows, // primary brand's mrpRows for backward compat display
+    price: null,
+    category: document.getElementById('p-category').value.trim(),
+    dosage: document.getElementById('p-dosage').value.trim(),
+    usp: document.getElementById('p-usp').value.trim(),
+    images: [...currentProductImages],
+    image: null,
+  };
+
+  if (editingProductId !== null) {
+    const idx = products.findIndex(p => p.id === editingProductId);
+    if (idx !== -1) products[idx] = { ...products[idx], ...data };
+    save(); renderProducts(); clearProductForm();
+    showAlert('product-alert', `"${data.name}" updated successfully!`, 'success');
+  } else {
+    products.push({ id: Date.now() + Math.random(), ...data });
+    save(); renderProducts(); clearProductForm();
+    showAlert('product-alert', `"${data.name}" added successfully!`, 'success');
+  }
+}
+
+// Returns a product's Brand/Generic name rows, regardless of whether it was
+// saved in the old single name/generic format or the new brandRows array format.
+function getProductBrandRows(p) {
+  if (p.brandRows && p.brandRows.length) return p.brandRows;
+  if (p.name) return [{ brand: p.name, generic: p.generic || '' }];
+  return [];
+}
+
+// Renders a product's Brand/Generic rows as a compact tag list.
+function renderBrandTags(p, className) {
+  const rows = getProductBrandRows(p);
+  if (!rows.length) return '';
+  const cls = className || 'brand-tag-list';
+  return `<div class="${cls}">` + rows.map(r =>
+    `<div class="brand-tag-row"><span class="brand">${r.brand}</span>${r.generic ? ` <span class="generic">(${r.generic})</span>` : ''}</div>`
+  ).join('') + `</div>`;
+}
+
+// Returns ALL MRP rows across all brands for a product.
+// New format: brandRows[i].mrpRows — reads nested per-brand MRP rows.
+// Legacy fallback: top-level mrpRows or price string.
+function getProductMrpRows(p) {
+  // New nested format — collect all mrpRows from all brands
+  if (p.brandRows && p.brandRows.length) {
+    const allRows = [];
+    p.brandRows.forEach(b => {
+      if (b.mrpRows && b.mrpRows.length) {
+        b.mrpRows.forEach(m => allRows.push({ ...m, _brand: b.brand }));
+      }
+    });
+    if (allRows.length) return allRows;
+  }
+  // Legacy top-level mrpRows
+  if (p.mrpRows && p.mrpRows.length) return p.mrpRows;
+  // Legacy single price string
+  if (p.price) return [{ strength: '', mrp: null, invoiceRate: null, legacyPrice: p.price }];
+  return [];
+}
+
+// Renders all MRP/Invoice Rate rows grouped per brand.
+// Shows brand name label if multiple brands each have their own rates.
+function renderPriceTags(p, className) {
+  const cls = className || 'price-tag-list';
+  const brands = getProductBrandRows(p);
+  const hasNestedRates = p.brandRows && p.brandRows.some(b => b.mrpRows && b.mrpRows.length);
+
+  if (hasNestedRates) {
+    // Render per-brand grouped rates
+    const multiBrand = brands.filter(b => b.mrpRows && b.mrpRows.length).length > 1;
+    const html = brands.map(b => {
+      const rows = b.mrpRows || [];
+      if (!rows.filter(m => m.mrp).length) return '';
+      const label = multiBrand ? `<div class="price-brand-label">${b.brand}</div>` : '';
+      const rowsHtml = rows
+        .filter(m => m.mrp !== '' && m.mrp !== null && m.mrp !== undefined)
+        .map(m => {
+          const inv = m.invoiceRate !== null && m.invoiceRate !== undefined
+            ? m.invoiceRate
+            : (m.mrp ? Math.round((parseFloat(m.mrp) - parseFloat(m.mrp) * 17.35 / 100) * 100) / 100 : null);
+          const s = m.strength ? `<span class="strength">${m.strength}</span>` : '';
+          const mrpS = m.mrp ? `<span class="mrp">MRP ₹${m.mrp}</span>` : '';
+          const invS = inv !== null ? `<span class="inv">Inv ₹${inv}</span>` : '';
+          return `<div class="price-tag-row">${s}${mrpS}${invS}</div>`;
+        }).join('');
+      return label + rowsHtml;
+    }).join('');
+    return `<div class="${cls}">${html}</div>`;
+  }
+
+  // Legacy flat mrpRows
+  const rows = getProductMrpRows(p);
+  if (!rows.length) return '';
+  return `<div class="${cls}">` + rows.map(r => {
+    if (r.legacyPrice) return `<div class="price-tag-row"><span class="mrp">${r.legacyPrice}</span></div>`;
+    const s = r.strength ? `<span class="strength">${r.strength}</span>` : '';
+    const mrpS = r.mrp !== null ? `<span class="mrp">MRP ₹${r.mrp}</span>` : '';
+    const invS = r.invoiceRate !== null ? `<span class="inv">Inv ₹${r.invoiceRate}</span>` : '';
+    return `<div class="price-tag-row">${s}${mrpS}${invS}</div>`;
+  }).join('') + `</div>`;
+}
+
+// Returns a product's images as an array, regardless of whether it was
+// saved in the old single-"image" format or the new "images" array format.
+function getProductImages(p) {
+  if (p.images && p.images.length) return p.images;
+  if (p.image) return [p.image];
+  return [];
+}
+
+// Renders 1-3 product images as a mosaic grid (1 = full, 2 = side by side, 3 = big+2 stacked)
+function renderImageMosaic(images, heightPx) {
+  if (!images.length) return '';
+  const n = Math.min(images.length, 3);
+  const style = heightPx ? `style="height:${heightPx}px"` : '';
+  return `<div class="product-img-mosaic n${n}" ${style}>` +
+    images.slice(0, 3).map(img => `<img src="${img}">`).join('') +
+    `</div>`;
+}
+
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  editingProductId = id;
+  document.getElementById('p-specialty').value = p.specialty || '';
+  document.getElementById('p-category').value = p.category || '';
+  document.getElementById('p-dosage').value = p.dosage || '';
+  document.getElementById('p-usp').value = p.usp || '';
+  currentProductImages = getProductImages(p).slice(0, MAX_PRODUCT_IMAGES);
+  renderImagePreviewRow();
+
+  // Load brand rows with nested MRP rows
+  const existingBrands = getProductBrandRows(p);
+  currentBrandRows = existingBrands.map(b => {
+    // Get this brand's mrpRows — for old data structure, use top-level mrpRows for first brand
+    const bMrpRows = (b.mrpRows && b.mrpRows.length) ? b.mrpRows : [];
+    return {
+      id: Date.now() + Math.random(),
+      brand: b.brand || '',
+      generic: b.generic || '',
+      mrpRows: bMrpRows.length
+        ? bMrpRows.map(m => ({ id: Date.now() + Math.random(), strength: m.strength || '', mrp: m.mrp || '' }))
+        : [{ id: Date.now() + Math.random(), strength: '', mrp: '' }]
+    };
+  });
+  if (!currentBrandRows.length) {
+    currentBrandRows = [{ id: Date.now() + Math.random(), brand: '', generic: '', mrpRows: [{ id: Date.now() + Math.random(), strength: '', mrp: '' }] }];
+  }
+  renderBrandRows();
+
+  document.getElementById('add-product-title').textContent = '✏️ Edit Product';
+  document.getElementById('add-product-btn').textContent = '💾 Save Changes';
+  document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
+  document.querySelector('#page-products .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEdit() { clearProductForm(); }
+
+function clearProductForm() {
+  ['p-specialty','p-category','p-dosage','p-usp'].forEach(id => document.getElementById(id).value = '');
+  currentProductImages = [];
+  currentBrandRows = [];
+  editingProductId = null;
+  document.getElementById('p-image-input').value = '';
+  renderImagePreviewRow();
+  renderBrandRows();
+  document.getElementById('add-product-title').textContent = '➕ Add New Product';
+  document.getElementById('add-product-btn').textContent = '💊 Add Product';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+function deleteProduct(id) {
+  products = products.filter(p => p.id !== id);
+  save();
+  renderProducts();
+}
+
+function clearAllProducts() {
+  if (!confirm('Delete ALL products? This cannot be undone.')) return;
+  products = [];
+  save();
+  renderProducts();
+}
+
+// ── RENDER PRODUCTS ──
+function renderProducts() {
+  const search = document.getElementById('search-products').value.toLowerCase();
+  const spec   = document.getElementById('filter-specialty').value;
+  let filtered = products.filter(p => {
+    const matchSpec = !spec || p.specialty === spec;
+    const matchSearch = !search || getProductBrandRows(p).some(r =>
+      r.brand.toLowerCase().includes(search) || (r.generic||'').toLowerCase().includes(search)
+    );
+    return matchSpec && matchSearch;
+  });
+  const grid = document.getElementById('product-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="emoji">💊</div><p>No products found. Add some above!</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card" title="${p.usp||''}">
+      <button class="del-btn" onclick="deleteProduct(${p.id})" title="Delete">✕</button>
+      ${renderImageMosaic(getProductImages(p))}
+      <div><span class="product-badge ${getSpecialtyColor(p.specialty)}">${p.specialty}</span></div>
+      ${renderBrandTags(p, 'brand-tag-list product-name')}
+      ${!p.category && !getProductBrandRows(p).some(r => r.generic) ? '' : `<div class="product-generic">${p.category || ''}</div>`}
+      ${p.dosage ? `<div style="font-size:.78rem;color:var(--text2)">${p.dosage}</div>` : ''}
+      ${renderPriceTags(p)}
+      <div class="product-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">✏️ Edit</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── SET BUILDER ──
+function filterPoolBySpecialty() {
+  renderPool();
+}
+
+function renderPool() {
+  const spec   = document.getElementById('s-specialty').value;
+  const search = document.getElementById('pool-search').value.toLowerCase();
+  let filtered = products.filter(p => {
+    const matchSpec = !spec || p.specialty === spec;
+    const matchSearch = !search || getProductBrandRows(p).some(r => r.brand.toLowerCase().includes(search));
+    return matchSpec && matchSearch && !currentSetProducts.includes(p.id);
+  });
+  const pool = document.getElementById('product-pool');
+  if (!filtered.length) {
+    pool.innerHTML = '<div style="color:var(--text2);font-size:.85rem;text-align:center;padding:20px">No products available</div>';
+    return;
+  }
+  pool.innerHTML = filtered.map(p => `
+    <div class="mini-product" onclick="addToSet(${p.id})">
+      <span><strong>${p.name}</strong> <span style="color:var(--text2);font-size:.78rem">${p.specialty}</span></span>
+      <span class="mini-add">+</span>
+    </div>
+  `).join('');
+}
+
+function renderSetList() {
+  const box = document.getElementById('product-set-list');
+  document.getElementById('selected-count').textContent = currentSetProducts.length;
+  if (!currentSetProducts.length) {
+    box.innerHTML = '<div style="color:var(--text2);font-size:.85rem;text-align:center;padding:20px">Click products on the left to add</div>';
+    return;
+  }
+  const selected = currentSetProducts.map(id => products.find(p => p.id === id)).filter(Boolean);
+  box.innerHTML = selected.map(p => `
+    <div class="mini-product" onclick="removeFromSet(${p.id})">
+      <span><strong>${p.name}</strong> <span style="color:var(--text2);font-size:.78rem">${p.specialty}</span></span>
+      <span class="mini-remove">−</span>
+    </div>
+  `).join('');
+}
+
+function addToSet(id) {
+  if (!currentSetProducts.includes(id)) currentSetProducts.push(id);
+  renderPool();
+  renderSetList();
+}
+
+function removeFromSet(id) {
+  currentSetProducts = currentSetProducts.filter(x => x !== id);
+  renderPool();
+  renderSetList();
+}
+
+function clearSetForm() {
+  ['s-name','s-doctor','s-date'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('s-specialty').value = '';
+  currentSetProducts = [];
+  renderPool();
+  renderSetList();
+}
+
+function saveSet() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { showAlert('set-alert', 'Set name is required.', 'error'); return; }
+  if (!currentSetProducts.length) { showAlert('set-alert', 'Select at least one product.', 'error'); return; }
+  promoSets.push({
+    id: Date.now(),
+    name,
+    doctor: document.getElementById('s-doctor').value.trim(),
+    specialty: document.getElementById('s-specialty').value,
+    date: document.getElementById('s-date').value,
+    products: [...currentSetProducts],
+  });
+  save();
+  renderSets();
+  clearSetForm();
+  showAlert('set-alert', `Set "${name}" saved!`, 'success');
+}
+
+function deleteSet(id) {
+  promoSets = promoSets.filter(s => s.id !== id);
+  save();
+  renderSets();
+  renderPresentPage();
+}
+
+// ── PRODUCTS AT GLANCE — A4 Print Catalogue ──
+function openCataloguePreview(setId) {
+  const s = promoSets.find(x => x.id === setId);
+  if (!s) return;
+  const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const page = document.getElementById('catalogue-page');
+  page.innerHTML = `
+    <div class="cat-header">
+      <h1 contenteditable="true">PRODUCTS AT GLANCE — ${s.name}</h1>
+      <div class="cat-meta">
+        <div contenteditable="true">${s.doctor ? 'Dr. ' + s.doctor : ''}</div>
+        <div contenteditable="true">${s.specialty || ''}</div>
+        <div>${dateStr}</div>
+      </div>
+    </div>
+    ${prods.map(p => renderPAGBox(p)).join('')}
+    <div class="cat-footer" contenteditable="true">Sun Bright Pharma · Medical Representative Visit</div>
+  `;
+  document.getElementById('catalogue-overlay').classList.add('open');
+}
+
+// Render one product as a 10cm × 5cm box with all brands + their rates
+function renderPAGBox(p) {
+  const imgs = getProductImages(p);
+  const brands = getProductBrandRows(p);
+
+  // Image column
+  const imgHtml = imgs.length
+    ? `<img src="${imgs[0]}" style="width:100%;height:100%;object-fit:contain">`
+    : `<span class="pag-img-none">No image</span>`;
+
+  // Row 1: all brand names
+  const brandsRow = `<div class="pag-brands">
+    ${brands.map(b => `<div class="pag-brand" contenteditable="true">${b.brand}</div>`).join('')}
+  </div>`;
+
+  // Row 2: all generic/composition names
+  const genericsRow = brands.some(b => b.generic)
+    ? `<div class="pag-generics">
+        ${brands.map(b => b.generic ? `<div class="pag-generic" contenteditable="true">${b.generic}</div>` : '').join('')}
+       </div>`
+    : '';
+
+  // Row 3: per-brand Pack + MRP + Invoice Rate
+  const ratesRow = `<div class="pag-rates">
+    ${brands.map(b => {
+      const bMrpRows = b.mrpRows && b.mrpRows.length ? b.mrpRows : [];
+      if (!bMrpRows.length) return '';
+      const showBrandLabel = brands.length > 1;
+      return `<div class="pag-rate-brand">
+        ${showBrandLabel ? `<span class="pag-rate-brand-name">${b.brand}:</span>` : ''}
+        ${bMrpRows.map(m => {
+          const inv = m.invoiceRate !== null && m.invoiceRate !== undefined
+            ? m.invoiceRate
+            : (m.mrp ? Math.round((m.mrp - m.mrp * 17.35 / 100) * 100) / 100 : null);
+          return `<div class="pag-rate-row" contenteditable="true">
+            ${m.strength ? `<span class="pag-pack">${m.strength}</span>` : ''}
+            ${m.mrp ? `<span class="pag-mrp">MRP ₹${m.mrp}</span>` : ''}
+            ${inv !== null ? `<span class="pag-inv">Inv ₹${inv}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  return `<div class="pag-box">
+    <div class="pag-img-col">${imgHtml}</div>
+    <div class="pag-info-col">
+      ${brandsRow}
+      ${genericsRow}
+      ${ratesRow}
+    </div>
+  </div>`;
+}
+
+function printCatalogue() { window.print(); }
+function closeCataloguePreview() {
+  document.getElementById('catalogue-overlay').classList.remove('open');
+}
+
+function renderSets() {
+  const container = document.getElementById('sets-list');
+  if (!promoSets.length) {
+    container.innerHTML = `<div class="empty"><div class="emoji">📋</div><p>No sets yet. Create one above!</p></div>`;
+    return;
+  }
+  container.innerHTML = promoSets.map(s => {
+    const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
+    return `
+    <div class="set-list-item">
+      <div class="set-info">
+        <div class="set-name">${s.name}</div>
+        <div class="set-meta">${s.doctor ? '👨‍⚕️ ' + s.doctor + ' &nbsp;·&nbsp; ' : ''}${s.specialty ? s.specialty + ' &nbsp;·&nbsp; ' : ''}${s.date || ''}  ${prods.length} products</div>
+        <div class="set-products-preview">${prods.map(p => `<span class="tag">${p.name}</span>`).join('')}</div>
+      </div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-success btn-sm" onclick="launchPresentation(${s.id})">▶ Present</button>
+        <button class="btn btn-secondary btn-sm" onclick="openCataloguePreview(${s.id})">📄 PDF Catalogue</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSet(${s.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PRESENT PAGE ──
+function renderPresentPage() {
+  const container = document.getElementById('present-sets-list');
+  if (!promoSets.length) {
+    container.innerHTML = `<div class="empty"><div class="emoji">🖥️</div><p>No promo sets yet. Create them in the Promo Sets tab.</p></div>`;
+    return;
+  }
+  container.innerHTML = promoSets.map(s => {
+    const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
+    return `
+    <div class="set-list-item">
+      <div class="set-info">
+        <div class="set-name">${s.name}</div>
+        <div class="set-meta">${s.doctor ? '👨‍⚕️ ' + s.doctor + ' &nbsp;·&nbsp; ' : ''}${s.specialty || ''} &nbsp;·&nbsp; ${prods.length} products</div>
+      </div>
+      <button class="btn btn-success" onclick="launchPresentation(${s.id})">▶ Launch Presentation</button>
+    </div>`;
+  }).join('');
+}
+
+// ── PRESENTATION ──
+let presIndex = 0;
+let presSets = [];
+let viewMode = 'grid';
+let singleProductIndex = 0;
+let singleImageActiveIndex = 0;
+let imageSizePct = 100;
+
+// ── LAUNCH ──
+function launchPresentation(setId) {
+  const idx = promoSets.findIndex(s => s.id === setId);
+  presSets = promoSets;
+  presIndex = idx >= 0 ? idx : 0;
+  singleProductIndex = 0;
+  singleImageActiveIndex = 0;
+  renderSlide();
+  document.getElementById('presentation-overlay').classList.add('open');
+  initSwipe();
+}
+
+function launchSpecialtyPresentation() {
+  const spec = document.getElementById('present-specialty-select').value;
+  if (!spec) { alert('No specialty selected.'); return; }
+  const matching = products.filter(p => p.specialty === spec).map(p => p.id);
+  if (!matching.length) { alert(`No products found under "${spec}".`); return; }
+  presSets = [{ id: 'spec-' + spec, name: spec + ' — All Products', doctor: '', specialty: spec, products: matching }];
+  presIndex = 0;
+  singleProductIndex = 0;
+  singleImageActiveIndex = 0;
+  renderSlide();
+  document.getElementById('presentation-overlay').classList.add('open');
+  initSwipe();
+}
+
+// ── VIEW MODE ──
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('view-grid-btn').classList.toggle('active', mode === 'grid');
+  document.getElementById('view-single-btn').classList.toggle('active', mode === 'single');
+  singleProductIndex = 0;
+  singleImageActiveIndex = 0;
+  renderSlide();
+}
+
+function updateImageSize(val) {
+  imageSizePct = parseInt(val);
+  renderSlide();
+}
+
+// ── RENDER SLIDE ──
+function renderSlide() {
+  const s = presSets[presIndex];
+  const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
+
+  // Update topbar info
+  document.getElementById('pres-title').textContent = s.name;
+  document.getElementById('pres-count').textContent =
+    (s.doctor ? s.doctor + ' · ' : '') + prods.length + ' products';
+
+  // Show/hide grid vs single
+  const gridEl = document.getElementById('pres-products');
+  const singleEl = document.getElementById('single-product-view');
+
+  if (viewMode === 'grid') {
+    gridEl.style.display = 'grid';
+    singleEl.style.display = 'none';
+    const imgH = Math.round(160 * (imageSizePct / 100));
+    gridEl.innerHTML = prods.map(p => {
+      const brands = getProductBrandRows(p);
+      // Composition = all generic names joined
+      const brandNames = brands.map(r => r.brand).filter(Boolean);
+      const genericNames = brands.map(r => r.generic).filter(Boolean);
+      return `
+        <div class="pres-product-card">
+          ${renderImageMosaic(getProductImages(p), imgH)}
+          <span class="pres-badge ${getSpecialtyColor(p.specialty)}">${p.category || p.specialty}</span>
+          <div class="pres-row1">
+            ${brandNames.map(b => `<div class="pres-brand-name">${b}</div>`).join('')}
+          </div>
+          ${genericNames.length ? `<div class="pres-row2">${genericNames.map(g => `<div class="pres-generic-name">${g}</div>`).join('')}</div>` : ''}
+          <div class="pres-row3 pres-price-block">${renderPriceTags(p, 'price-tag-list')}</div>
+        </div>`;
+    }).join('');
+
+    // Slide num = set index
+    document.getElementById('pres-slide-num').textContent =
+      `Set ${presIndex + 1} / ${presSets.length}`;
+  } else {
+    gridEl.style.display = 'none';
+    singleEl.style.display = 'flex';
+    renderSingleProduct(prods);
+  }
+}
+
+// ── SINGLE PRODUCT VIEW ──
+function renderSingleProduct(prods) {
+  const el = document.getElementById('single-product-view');
+  if (!prods.length) {
+    el.innerHTML = `<div style="color:rgba(255,255,255,.5)">No products in this set.</div>`;
+    document.getElementById('pres-slide-num').textContent = '';
+    return;
+  }
+  singleProductIndex = Math.max(0, Math.min(prods.length - 1, singleProductIndex));
+  const p = prods[singleProductIndex];
+  const imgs = getProductImages(p);
+  singleImageActiveIndex = Math.max(0, Math.min(imgs.length - 1, singleImageActiveIndex));
+  const brands = getProductBrandRows(p);
+  const brandNames = brands.map(r => r.brand).filter(Boolean);
+  const genericNames = brands.map(r => r.generic).filter(Boolean);
+  const imgMaxVh = Math.round(52 * (imageSizePct / 100));
+
+  const heroImg = imgs.length
+    ? `<img src="${imgs[singleImageActiveIndex]}" class="single-product-img" style="max-height:${imgMaxVh}vh">`
+    : '';
+  const thumbs = imgs.length > 1
+    ? `<div class="single-img-thumbs">
+        ${imgs.map((img, i) => `<img src="${img}" class="single-img-thumb ${i === singleImageActiveIndex ? 'active' : ''}"
+          onclick="singleImageActiveIndex=${i};renderSingleProduct(presSets[presIndex].products.map(id=>products.find(pr=>pr.id===id)).filter(Boolean))">`
+        ).join('')}
+       </div>`
+    : '';
+
+  el.innerHTML = `
+    <span style="font-size:.78rem;font-weight:700;padding:4px 14px;border-radius:20px;color:#fff;background:${getSpecialtyBg(p.specialty)}">${p.category || p.specialty}</span>
+    ${heroImg}
+    ${thumbs}
+    <div class="single-row1">
+      ${brandNames.map(b => `<div class="single-brand-name">${b}</div>`).join('')}
+    </div>
+    ${genericNames.length ? `<div class="single-row2">${genericNames.map(g => `<div class="single-generic-name">${g}</div>`).join('')}</div>` : ''}
+    <div class="single-row3 single-rates">${renderPriceTags(p, 'price-tag-list')}</div>
+  `;
+
+  document.getElementById('pres-slide-num').textContent =
+    `Product ${singleProductIndex + 1} / ${prods.length}`;
+}
+
+// Helper: get a specialty background color by index (for inline badge)
+function getSpecialtyBg(spec) {
+  const colorMap = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#f39c12','#1abc9c','#e67e22','#34495e','#c0392b','#16a085'];
+  const keys = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  const idx = keys.indexOf(spec);
+  return colorMap[idx >= 0 ? idx % colorMap.length : 0];
+}
+
+// ── UNIFIED NAVIGATION ──
+// Called by bottom Prev/Next buttons — routes to set nav or product nav depending on view
+function presNavCurrent(dir) {
+  if (viewMode === 'single') {
+    singleProductNavFn(dir);
+  } else {
+    presNavFn(dir);
+  }
+}
+
+// Grid view: continuous loop through sets
+function presNavFn(dir) {
+  const total = presSets.length;
+  presIndex = (presIndex + dir + total) % total; // wrap around
+  singleProductIndex = 0;
+  singleImageActiveIndex = 0;
+  animateSlide(dir);
+  renderSlide();
+}
+
+// Single product view: continuous loop across ALL products across ALL sets
+function singleProductNavFn(dir) {
+  // Build flat list of all products across all sets
+  const allProds = [];
+  presSets.forEach((s, si) => {
+    s.products.forEach((id, pi) => {
+      const p = products.find(x => x.id === id);
+      if (p) allProds.push({ setIdx: si, prodIdx: pi, p });
+    });
+  });
+  if (!allProds.length) return;
+
+  // Find current position in flat list
+  const curFlat = allProds.findIndex(x => x.setIdx === presIndex && x.prodIdx === singleProductIndex);
+  const nextFlat = (curFlat + dir + allProds.length) % allProds.length; // wrap around
+
+  presIndex = allProds[nextFlat].setIdx;
+  singleProductIndex = allProds[nextFlat].prodIdx;
+  singleImageActiveIndex = 0;
+  animateSlide(dir);
+  renderSlide();
+}
+
+function closePresentation() {
+  document.getElementById('presentation-overlay').classList.remove('open');
+}
+
+// ── SLIDE ANIMATION (visual flash to confirm swipe) ──
+function animateSlide(dir) {
+  const slide = document.getElementById('pres-slide');
+  slide.style.transition = 'opacity .12s ease';
+  slide.style.opacity = '0.35';
+  setTimeout(() => {
+    slide.style.opacity = '1';
+  }, 130);
+}
+
+// ── SWIPE GESTURE — full overlay, very sensitive, continuous ──
+let swipeTouchStartX = 0;
+let swipeTouchStartY = 0;
+let swipeActive = false;
+let swipeLastTime = 0;
+let swipeInitialized = false;
+
+function initSwipe() {
+  if (swipeInitialized) return;
+  swipeInitialized = true;
+
+  // Attach to the FULL overlay so swipe works anywhere on screen
+  const overlay = document.getElementById('presentation-overlay');
+
+  overlay.addEventListener('touchstart', e => {
+    // Don't steal touches from range slider or buttons
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    swipeTouchStartX = e.touches[0].clientX;
+    swipeTouchStartY = e.touches[0].clientY;
+    swipeActive = true;
+  }, { passive: true });
+
+  overlay.addEventListener('touchmove', e => {
+    if (!swipeActive) return;
+    // Suppress vertical scroll only when clearly swiping horizontally
+    const dx = e.touches[0].clientX - swipeTouchStartX;
+    const dy = e.touches[0].clientY - swipeTouchStartY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      e.preventDefault(); // stop page scroll during horizontal swipe
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('touchend', e => {
+    if (!swipeActive) return;
+    swipeActive = false;
+
+    const dx = e.changedTouches[0].clientX - swipeTouchStartX;
+    const dy = e.changedTouches[0].clientY - swipeTouchStartY;
+    const now = Date.now();
+
+    // Debounce: ignore if fired within 300ms of last swipe (accidental double)
+    if (now - swipeLastTime < 300) return;
+
+    // Trigger on short fast flick (>25px) OR longer slow swipe (>70px)
+    // Horizontal must dominate over vertical
+    const isHorizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+    const isFlick = Math.abs(dx) > 25;
+
+    if (isHorizontal && isFlick) {
+      swipeLastTime = now;
+      presNavCurrent(dx < 0 ? 1 : -1); // left = next, right = prev
+    }
+  }, { passive: true });
+
+  // Cancel swipe if touch is interrupted
+  overlay.addEventListener('touchcancel', () => { swipeActive = false; }, { passive: true });
+}
+
+// ── ALERT ──
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert ' + type;
+  setTimeout(() => el.className = 'alert', 3500);
+}
+
+// ── BACKUP / TRANSFER ──
+function exportData() {
+  const payload = {
+    app: 'MedPromo',
+    exportedAt: new Date().toISOString(),
+    products,
+    promoSets,
+  };
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `medpromo-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showAlert('backup-alert', 'Backup file downloaded! Share it to your tablet via email, WhatsApp, or Drive.', 'success');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.products || !data.promoSets) {
+        showAlert('backup-alert', 'This file does not look like a valid MedPromo backup.', 'error');
+        return;
+      }
+      const mode = confirm(
+        `Found ${data.products.length} products and ${data.promoSets.length} promo sets.\n\nPress OK to MERGE with your existing data, or Cancel to REPLACE everything currently saved.`
+      );
+      if (mode) {
+        // Merge — avoid duplicate IDs by reassigning new ones to incoming records
+        data.products.forEach(p => products.push({ ...p, id: Date.now() + Math.random() }));
+        data.promoSets.forEach(s => promoSets.push({ ...s, id: Date.now() + Math.random() }));
+      } else {
+        if (!confirm('This will permanently erase your current products and sets. Continue?')) return;
+        products = data.products;
+        promoSets = data.promoSets;
+      }
+      save();
+      renderProducts();
+      renderSets();
+      renderPresentPage();
+      showAlert('backup-alert', 'Backup imported successfully!', 'success');
+    } catch (err) {
+      showAlert('backup-alert', 'Could not read this file. Make sure it is a MedPromo backup JSON.', 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── SAMPLE DATA ──
+function loadSampleData() {
+  if (products.length && !confirm('This will add sample products. Continue?')) return;
+  const samples = [
+    { name:'Amlosafe 5', generic:'Amlodipine 5mg', specialty:'Cardiology', price:'₹85', category:'Calcium Channel Blocker', dosage:'5mg Tab', usp:'Once daily, BP control' },
+    { name:'Telma 40', generic:'Telmisartan 40mg', specialty:'Cardiology', price:'₹110', category:'ARB', dosage:'40mg Tab', usp:'24hr BP control' },
+    { name:'Ecosprin 75', generic:'Aspirin 75mg', specialty:'Cardiology', price:'₹35', category:'Antiplatelet', dosage:'75mg Gastro', usp:'Heart protection' },
+    { name:'Atorfit 10', generic:'Atorvastatin 10mg', specialty:'Cardiology', price:'₹65', category:'Statin', dosage:'10mg Tab', usp:'Cholesterol management' },
+    { name:'Deriphyllin', generic:'Theophylline+Etofylline', specialty:'Pulmonology', price:'₹55', category:'Bronchodilator', dosage:'Tab', usp:'Bronchospasm relief' },
+    { name:'Montair LC', generic:'Montelukast+Levocetirizine', specialty:'Pulmonology', price:'₹95', category:'Antiasthmatic', dosage:'Tab', usp:'Asthma + allergies' },
+    { name:'Budecort 200', generic:'Budesonide 200mcg', specialty:'Pulmonology', price:'₹320', category:'Inhaled Corticosteroid', dosage:'Inhaler', usp:'Daily controller inhaler' },
+    { name:'Pan 40', generic:'Pantoprazole 40mg', specialty:'Gastroenterology', price:'₹70', category:'PPI', dosage:'40mg Tab', usp:'Acid suppression' },
+    { name:'Udiliv 300', generic:'Ursodeoxycholic Acid', specialty:'Gastroenterology', price:'₹210', category:'Hepatoprotective', dosage:'300mg Tab', usp:'Liver protection' },
+    { name:'Cremaffin Plus', generic:'Liquid Paraffin+Milk of Magnesia', specialty:'Gastroenterology', price:'₹95', category:'Laxative', dosage:'Syrup', usp:'Constipation relief' },
+    { name:'Combiflam', generic:'Ibuprofen+Paracetamol', specialty:'Orthopaedics', price:'₹45', category:'NSAID', dosage:'Tab', usp:'Pain & fever combo' },
+    { name:'Shelcal 500', generic:'Calcium+Vit D3', specialty:'Orthopaedics', price:'₹130', category:'Calcium Supplement', dosage:'Tab', usp:'Bone health' },
+    { name:'Pregabalin 75', generic:'Pregabalin 75mg', specialty:'Orthopaedics', price:'₹85', category:'Neuropathic Pain', dosage:'75mg Cap', usp:'Nerve pain relief' },
+    { name:'Zocef 500', generic:'Cefuroxime 500mg', specialty:'ENT', price:'₹145', category:'Antibiotic', dosage:'500mg Tab', usp:'Sinusitis, pharyngitis' },
+    { name:'Nasivion S', generic:'Oxymetazoline 0.05%', specialty:'ENT', price:'₹55', category:'Nasal Decongestant', dosage:'Nasal Drops', usp:'Fast nasal relief' },
+    { name:'Betadine Gargle', generic:'Povidone Iodine 1%', specialty:'ENT', price:'₹65', category:'Antiseptic', dosage:'Gargle Solution', usp:'Throat infection' },
+    { name:'Metformin 500', generic:'Metformin HCl 500mg', specialty:'Diabetology', price:'₹40', category:'Biguanide', dosage:'500mg SR Tab', usp:'First line diabetes care' },
+    { name:'Januvia 100', generic:'Sitagliptin 100mg', specialty:'Diabetology', price:'₹180', category:'DPP-4 Inhibitor', dosage:'100mg Tab', usp:'HbA1c control' },
+    { name:'Dydroboon', generic:'Dydrogesterone 10mg', specialty:'Gynaecology', price:'₹95', category:'Progestogen', dosage:'10mg Tab', usp:'Cycle regulation' },
+    { name:'Fefol', generic:'Iron + Folic Acid', specialty:'Gynaecology', price:'₹55', category:'Haematinic', dosage:'Capsule', usp:'Anaemia in pregnancy' },
+  ];
+  samples.forEach(s => {
+    products.push({ id: Date.now() + Math.random(), ...s });
+  });
+  // sample sets
+  const ids = products.map(p => p.id);
+  const cardioProducts = products.filter(p => p.specialty === 'Cardiology').map(p => p.id);
+  const pulmoProducts = products.filter(p => p.specialty === 'Pulmonology').map(p => p.id);
+  promoSets.push({
+    id: Date.now()+1,
+    name: 'Cardiology Rounds — Dr. Mehta',
+    doctor: 'Dr. Anil Mehta',
+    specialty: 'Cardiology',
+    date: new Date().toISOString().slice(0,10),
+    products: cardioProducts,
+  });
+  promoSets.push({
+    id: Date.now()+2,
+    name: 'Pulmonology Clinic — Dr. Shah',
+    doctor: 'Dr. Priya Shah',
+    specialty: 'Pulmonology',
+    date: new Date().toISOString().slice(0,10),
+    products: pulmoProducts,
+  });
+  save();
+  renderProducts();
+  renderSets();
+  renderPresentPage();
+  alert('Sample data loaded! Go to Products or Promo Sets to explore.');
+}
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('presentation-overlay');
+  if (overlay.classList.contains('open')) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      viewMode === 'single' ? singleProductNavFn(1) : presNavFn(1);
+    }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') {
+      viewMode === 'single' ? singleProductNavFn(-1) : presNavFn(-1);
+    }
+    if (e.key === 'Escape') closePresentation();
+  }
+});
+
+// ── PWA INSTALL PROMPT ──
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'inline-flex';
+});
+function triggerInstall() {
+  if (!deferredInstallPrompt) {
+    document.getElementById('install-note').textContent =
+      'To install: open in Chrome → menu (⋮) → Add to Home screen';
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(choice => {
+    deferredInstallPrompt = null;
+    document.getElementById('install-btn').style.display = 'none';
+    document.getElementById('install-note').textContent =
+      choice.outcome === 'accepted' ? '✅ MedPromo installed!' : '';
+  });
+}
+
+// ── INIT ──
+initStorage();
+</script>
+</body>
+</html>
