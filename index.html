@@ -678,12 +678,29 @@
 
       <div class="card">
         <div class="card-title">🔄 Backup &amp; Transfer to Another Device</div>
-        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Export all your products and promo sets (including images) into one file. Move it to your tablet via email, WhatsApp, or Google Drive, then import it there.</p>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:8px">Transfer all your products including images using <strong>Export by Specialty</strong> — exports one specialty at a time, small file, never crashes.</p>
         <div id="backup-alert" class="alert"></div>
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="exportData()">⬇️ Export Backup File</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('import-file-input').click()">⬆️ Import Backup File</button>
-          <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+
+        <div style="margin-bottom:12px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:6px">📦 Export by Specialty (with images — recommended)</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="export-specialty-select" style="min-width:200px">
+              <option value="">Select Specialty...</option>
+            </select>
+            <button class="btn btn-success btn-sm" onclick="exportBySpecialty()">⬇️ Export This Specialty</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAllSpecialties()">⬇️ Export All Specialties One by One</button>
+          </div>
+          <div style="font-size:.75rem;color:var(--text2);margin-top:5px">Each specialty exports separately — small file, includes images. Import each one into your new app.</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <div style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:6px">📄 Other Options</div>
+          <div class="btn-row" style="margin-top:0">
+            <button class="btn btn-secondary btn-sm" onclick="exportDataTextOnly()">⬇️ Text-Only (no images)</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportData()">⬇️ Full Export (may crash if large)</button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('import-file-input').click()">⬆️ Import Backup</button>
+            <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+          </div>
         </div>
       </div>
     </div>
@@ -1180,6 +1197,17 @@ function updateSelectOptions() {
     presSpecEl.innerHTML = specs.length
       ? specs.map(s => `<option value="${s}" ${s === cur ? 'selected' : ''}>${s}</option>`).join('')
       : '<option value="">No specialties yet</option>';
+  }
+
+  // Also update export specialty dropdown
+  const expSpecEl = document.getElementById('export-specialty-select');
+  if (expSpecEl) {
+    const cur = expSpecEl.value;
+    expSpecEl.innerHTML = '<option value="">Select Specialty...</option>' +
+      specs.map(s => {
+        const count = products.filter(p => p.specialty === s).length;
+        return `<option value="${s}" ${s === cur ? 'selected' : ''}>${s} (${count} products)</option>`;
+      }).join('');
   }
 }
 
@@ -1912,23 +1940,139 @@ function showAlert(id, msg, type) {
 
 // ── BACKUP / TRANSFER ──
 function exportData() {
-  const payload = {
-    app: 'MedPromo',
-    exportedAt: new Date().toISOString(),
-    products,
-    promoSets,
-  };
-  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = `medpromo-backup-${dateStr}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showAlert('backup-alert', 'Backup file downloaded! Share it to your tablet via email, WhatsApp, or Drive.', 'success');
+  // Full export — split into chunks to avoid memory crash
+  try {
+    const payload = {
+      app: 'MedPromo',
+      exportedAt: new Date().toISOString(),
+      products,
+      promoSets,
+    };
+    const json = JSON.stringify(payload);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `medpromo-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showAlert('backup-alert', 'Full backup downloaded! If it crashes, use Text-Only Export instead.', 'success');
+  } catch(e) {
+    showAlert('backup-alert', 'Full export failed — please use Text-Only Export below.', 'error');
+  }
+}
+
+// Export ONE specialty with images — small file, never crashes
+function exportBySpecialty() {
+  const spec = document.getElementById('export-specialty-select').value;
+  if (!spec) { showAlert('backup-alert', 'Please select a specialty first.', 'error'); return; }
+  const specProducts = products.filter(p => p.specialty === spec);
+  if (!specProducts.length) { showAlert('backup-alert', 'No products found for this specialty.', 'error'); return; }
+  try {
+    const payload = {
+      app: 'MedPromo',
+      exportedAt: new Date().toISOString(),
+      specialty: spec,
+      productCount: specProducts.length,
+      products: specProducts,
+      promoSets: promoSets.filter(s => s.specialty === spec ||
+        s.products.some(id => specProducts.find(p => p.id === id))),
+    };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    const safeName = spec.replace(/[^a-zA-Z0-9]/g, '-');
+    a.href = url;
+    a.download = `medpromo-${safeName}-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showAlert('backup-alert', `✅ ${specProducts.length} products from "${spec}" exported with images! Import into your new app.`, 'success');
+  } catch(e) {
+    showAlert('backup-alert', 'Export failed — try Text-Only export instead.', 'error');
+  }
+}
+
+// Export ALL specialties one by one with a small delay between each
+async function exportAllSpecialties() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  if (!specs.length) { showAlert('backup-alert', 'No products found.', 'error'); return; }
+  showAlert('backup-alert', `Exporting ${specs.length} specialties one by one... Please allow each download.`, 'success');
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i];
+    const specProducts = products.filter(p => p.specialty === spec);
+    try {
+      const payload = {
+        app: 'MedPromo',
+        exportedAt: new Date().toISOString(),
+        specialty: spec,
+        productCount: specProducts.length,
+        products: specProducts,
+        promoSets: promoSets.filter(s => s.specialty === spec),
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0,10);
+      const safeName = spec.replace(/[^a-zA-Z0-9]/g, '-');
+      a.href = url;
+      a.download = `medpromo-${safeName}-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      // Wait 1.5 seconds between each download so browser doesn't block them
+      await new Promise(r => setTimeout(r, 1500));
+    } catch(e) {
+      console.error('Failed to export', spec, e);
+    }
+  }
+  showAlert('backup-alert', `✅ All ${specs.length} specialties exported! Now import each file into your new app.`, 'success');
+}
+
+// Export WITHOUT images — tiny file, never crashes
+// Use this to transfer to Netlify or new device, then re-upload images
+function exportDataTextOnly() {
+  try {
+    // Strip all image data from products
+    const strippedProducts = products.map(p => {
+      const clean = { ...p };
+      delete clean.images;
+      delete clean.image;
+      // Also strip images from brandRows if present
+      if (clean.brandRows) {
+        clean.brandRows = clean.brandRows.map(b => ({ ...b }));
+      }
+      return clean;
+    });
+    const payload = {
+      app: 'MedPromo',
+      exportedAt: new Date().toISOString(),
+      textOnly: true,
+      productCount: products.length,
+      products: strippedProducts,
+      promoSets,
+    };
+    const json = JSON.stringify(payload);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `medpromo-textonly-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showAlert('backup-alert', `Text-only backup of ${products.length} products downloaded! Import this into your Netlify MedPromo. Images will need to be re-uploaded.`, 'success');
+  } catch(e) {
+    showAlert('backup-alert', 'Export failed: ' + e.message, 'error');
+  }
 }
 
 function importData(input) {
