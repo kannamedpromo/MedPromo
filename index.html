@@ -245,22 +245,46 @@
   .mini-remove { font-size: 1rem; color: var(--danger); font-weight: 700; }
 
   /* ── SETS LIST ── */
+  /* ── SET LIST ITEMS ── */
   .set-list-item {
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px 16px;
     margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
+  }
+  .set-list-top {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 12px; flex-wrap: wrap;
   }
   .set-info { flex: 1; }
-  .set-name { font-weight: 700; font-size: 1rem; }
-  .set-meta { font-size: .8rem; color: var(--text2); margin-top: 2px; }
-  .set-products-preview { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .set-name { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+  .set-meta { font-size: .8rem; color: var(--text2); margin-bottom: 6px; }
+  /* Product image strip */
+  .set-img-strip {
+    display: flex; gap: 5px; flex-wrap: wrap;
+    margin-top: 8px; margin-bottom: 4px;
+  }
+  .set-img-thumb {
+    width: 44px; height: 44px; object-fit: cover;
+    border-radius: 6px; border: 1.5px solid var(--border);
+    flex-shrink: 0;
+  }
+  .set-img-placeholder {
+    width: 44px; height: 44px; border-radius: 6px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; color: var(--text2); flex-shrink: 0;
+  }
+  .set-img-more {
+    width: 44px; height: 44px; border-radius: 6px;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700; flex-shrink: 0;
+  }
+  .set-action-row {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+  }
   .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .73rem; font-weight: 600; background: var(--surface2); color: var(--text2); }
 
   /* ── PRESENTATION ── */
@@ -801,8 +825,9 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="saveSet()">💾 Save Promo Set</button>
+          <button class="btn btn-primary" id="save-set-btn" onclick="saveSet()">💾 Save Promo Set</button>
           <button class="btn btn-secondary" onclick="clearSetForm()">Clear</button>
+          <button class="btn btn-secondary" id="cancel-set-edit-btn" onclick="cancelSetEdit()" style="display:none">✕ Cancel Edit</button>
         </div>
       </div>
 
@@ -813,19 +838,20 @@
     <!-- PRESENT PAGE -->
     <div class="page" id="page-present">
       <h2>🖥️ Present</h2>
-      <p class="sub">Launch a full-screen visual presentation of any promo set, or present all products of a specialty directly.</p>
-
+      <p class="sub">Present all products of a specialty directly, or go to Promo Sets to launch a set.</p>
       <div class="card">
         <div class="card-title">🏷️ Present by Specialty</div>
-        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Skip building a set — instantly present every product tagged under one specialty.</p>
+        <p style="color:var(--text2);font-size:.88rem;margin-bottom:12px">Instantly present every product under one specialty — no set needed.</p>
         <div class="toolbar" style="margin-bottom:0">
           <select id="present-specialty-select" style="min-width:220px"></select>
           <button class="btn btn-success" onclick="launchSpecialtyPresentation()">▶ Present This Specialty</button>
         </div>
       </div>
-
-      <h3 style="margin-bottom:12px;font-size:1.1rem">Saved Promo Sets</h3>
-      <div id="present-sets-list"></div>
+      <div class="card" style="text-align:center;padding:30px">
+        <div style="font-size:2rem;margin-bottom:8px">📋</div>
+        <p style="color:var(--text2);font-size:.9rem">To launch a Promo Set presentation, go to the <strong>Promo Sets</strong> tab and tap <strong>▶ Present</strong>.</p>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="showPage('sets')">Go to Promo Sets →</button>
+      </div>
     </div>
   </main>
 </div>
@@ -885,6 +911,7 @@ let promoSets = [];
 let currentSetProducts = []; // IDs selected for new set
 let currentProductImages = []; // array of up to 3 base64 images for product being added
 let currentBrandRows = []; // array of {id, brand, generic, mrpRows:[]} for product being added/edited
+let editingSetId = null; // null = creating new set, otherwise editing this set's id
 const INVOICE_DISCOUNT_PCT = 17.35; // Invoice Rate = MRP - 17.35%
 let editingProductId = null; // null = adding new, otherwise editing this product's id
 
@@ -1511,6 +1538,7 @@ function clearSetForm() {
   ['s-name','s-doctor','s-date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('s-specialty').value = '';
   currentSetProducts = [];
+  editingSetId = null;
   renderPool();
   renderSetList();
 }
@@ -1519,25 +1547,78 @@ function saveSet() {
   const name = document.getElementById('s-name').value.trim();
   if (!name) { showAlert('set-alert', 'Set name is required.', 'error'); return; }
   if (!currentSetProducts.length) { showAlert('set-alert', 'Select at least one product.', 'error'); return; }
-  promoSets.push({
-    id: Date.now(),
+
+  const setData = {
     name,
     doctor: document.getElementById('s-doctor').value.trim(),
     specialty: document.getElementById('s-specialty').value,
     date: document.getElementById('s-date').value,
     products: [...currentSetProducts],
-  });
-  save();
-  renderSets();
-  clearSetForm();
-  showAlert('set-alert', `Set "${name}" saved!`, 'success');
+  };
+
+  if (editingSetId !== null) {
+    // Update existing set
+    const idx = promoSets.findIndex(s => s.id === editingSetId);
+    if (idx !== -1) promoSets[idx] = { ...promoSets[idx], ...setData };
+    save();
+    renderSets();
+    cancelSetEdit();
+    showAlert('set-alert', `Set "${name}" updated!`, 'success');
+  } else {
+    // Create new set
+    promoSets.push({ id: Date.now(), ...setData });
+    save();
+    renderSets();
+    clearSetForm();
+    showAlert('set-alert', `Set "${name}" saved!`, 'success');
+  }
 }
 
 function deleteSet(id) {
+  if (!confirm('Delete this promo set? Products are not deleted.')) return;
   promoSets = promoSets.filter(s => s.id !== id);
   save();
   renderSets();
   renderPresentPage();
+}
+
+// ── EDIT SET ── loads set back into form for editing
+function editSet(id) {
+  const s = promoSets.find(x => x.id === id);
+  if (!s) return;
+  editingSetId = id;
+
+  // Fill form fields
+  document.getElementById('s-name').value = s.name || '';
+  document.getElementById('s-doctor').value = s.doctor || '';
+  document.getElementById('s-specialty').value = s.specialty || '';
+  document.getElementById('s-date').value = s.date || '';
+
+  // Load selected products
+  currentSetProducts = [...(s.products || [])];
+  renderPool();
+  renderSetList();
+
+  // Update form title and button
+  document.querySelector('#page-sets .card-title').textContent = '✏️ Edit Promo Set';
+  document.getElementById('save-set-btn').textContent = '💾 Update Set';
+
+  // Show cancel edit button
+  const cancelBtn = document.getElementById('cancel-set-edit-btn');
+  if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+
+  // Scroll to form
+  document.querySelector('#page-sets .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showPage('sets');
+}
+
+function cancelSetEdit() {
+  editingSetId = null;
+  clearSetForm();
+  document.querySelector('#page-sets .card-title').textContent = '➕ Create New Promo Set';
+  document.getElementById('save-set-btn').textContent = '💾 Save Promo Set';
+  const cancelBtn = document.getElementById('cancel-set-edit-btn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 // ── PRODUCTS AT GLANCE — A4 Print Catalogue ──
@@ -1629,40 +1710,53 @@ function renderSets() {
   }
   container.innerHTML = promoSets.map(s => {
     const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
+
+    // Build image strip — show up to 8 product images
+    const MAX_IMGS = 8;
+    let imgStripHtml = '';
+    let shown = 0;
+    for (let i = 0; i < prods.length && shown < MAX_IMGS; i++) {
+      const imgs = getProductImages(prods[i]);
+      if (imgs.length) {
+        imgStripHtml += `<img src="${imgs[0]}" class="set-img-thumb" title="${prods[i].name}">`;
+      } else {
+        imgStripHtml += `<div class="set-img-placeholder" title="${prods[i].name}">💊</div>`;
+      }
+      shown++;
+    }
+    const remaining = prods.length - shown;
+    if (remaining > 0) {
+      imgStripHtml += `<div class="set-img-more">+${remaining}</div>`;
+    }
+
     return `
     <div class="set-list-item">
-      <div class="set-info">
-        <div class="set-name">${s.name}</div>
-        <div class="set-meta">${s.doctor ? '👨‍⚕️ ' + s.doctor + ' &nbsp;·&nbsp; ' : ''}${s.specialty ? s.specialty + ' &nbsp;·&nbsp; ' : ''}${s.date || ''}  ${prods.length} products</div>
-        <div class="set-products-preview">${prods.map(p => `<span class="tag">${p.name}</span>`).join('')}</div>
+      <div class="set-list-top">
+        <div class="set-info">
+          <div class="set-name">${s.name}</div>
+          <div class="set-meta">
+            ${s.doctor ? '👨‍⚕️ ' + s.doctor + ' &nbsp;·&nbsp; ' : ''}
+            ${s.specialty ? s.specialty + ' &nbsp;·&nbsp; ' : ''}
+            ${s.date ? s.date + ' &nbsp;·&nbsp; ' : ''}
+            <strong>${prods.length} products</strong>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:0;flex-shrink:0">
+          <button class="btn btn-success btn-sm" onclick="launchPresentation(${s.id})">▶ Present</button>
+          <button class="btn btn-secondary btn-sm" onclick="openCataloguePreview(${s.id})">📄 Print</button>
+          <button class="btn btn-secondary btn-sm" onclick="editSet(${s.id})">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSet(${s.id})">🗑</button>
+        </div>
       </div>
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-success btn-sm" onclick="launchPresentation(${s.id})">▶ Present</button>
-        <button class="btn btn-secondary btn-sm" onclick="openCataloguePreview(${s.id})">📄 PDF Catalogue</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSet(${s.id})">🗑</button>
-      </div>
+      <div class="set-img-strip">${imgStripHtml}</div>
     </div>`;
   }).join('');
 }
 
-// ── PRESENT PAGE ──
+// ── PRESENT PAGE ── (no duplicate sets list)
 function renderPresentPage() {
-  const container = document.getElementById('present-sets-list');
-  if (!promoSets.length) {
-    container.innerHTML = `<div class="empty"><div class="emoji">🖥️</div><p>No promo sets yet. Create them in the Promo Sets tab.</p></div>`;
-    return;
-  }
-  container.innerHTML = promoSets.map(s => {
-    const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
-    return `
-    <div class="set-list-item">
-      <div class="set-info">
-        <div class="set-name">${s.name}</div>
-        <div class="set-meta">${s.doctor ? '👨‍⚕️ ' + s.doctor + ' &nbsp;·&nbsp; ' : ''}${s.specialty || ''} &nbsp;·&nbsp; ${prods.length} products</div>
-      </div>
-      <button class="btn btn-success" onclick="launchPresentation(${s.id})">▶ Launch Presentation</button>
-    </div>`;
-  }).join('');
+  // Nothing to render — sets are shown in Promo Sets tab only
+  // Specialty select is populated by updateSelectOptions()
 }
 
 // ── PRESENTATION ──
