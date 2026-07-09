@@ -321,89 +321,84 @@
   /* ── GRID VIEW ── */
   .pres-products {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px; align-content: start;
   }
   .pres-product-card {
     background: rgba(255,255,255,.09);
     border: 1px solid rgba(255,255,255,.18);
-    border-radius: 12px; padding: 14px;
+    border-radius: 12px; overflow: hidden;
     transition: background .2s;
+    display: flex; flex-direction: column;
   }
-  .pres-product-card:hover { background: rgba(255,255,255,.16); }
-  .pres-badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 8px; display: inline-block; color: #fff; }
-
-  /* ROW 1 — Brand Names: bright white, bold */
-  .pres-row1 { margin-bottom: 5px; }
-  .pres-brand-name { font-size: 1rem; font-weight: 800; color: #ffffff; line-height: 1.25; }
-
-  /* ROW 2 — Generic Names: bright cyan */
-  .pres-row2 { margin-bottom: 6px; }
-  .pres-generic-name { font-size: .8rem; font-weight: 600; color: #7ee8d0; line-height: 1.3; }
-
-  /* ROW 3 — Pack / MRP / Inv Rate: all bright orange */
-  .pres-row3 { margin-top: 2px; }
-  .pres-price-block .price-tag-list { gap: 2px; }
-  .pres-price-block .price-tag-row { font-size: .8rem; gap: 6px; flex-wrap: wrap; }
-  .pres-price-block .price-tag-row .strength,
-  .pres-price-block .price-tag-row .mrp,
-  .pres-price-block .price-tag-row .inv,
-  .pres-price-block .price-tag-row .legacy-price { color: #ffb347 !important; font-weight: 700; }
-  .pres-price-block .price-tag-row .inv { font-weight: 800; }
-  .pres-price-block .price-brand-label { color: #7ee8d0; font-size: .68rem; }
+  .pres-product-card:hover { background: rgba(255,255,255,.15); }
+  /* Grid top: image left + pack right */
+  .grid-top-row { display: grid; grid-template-columns: 1fr 1fr; min-height: 120px; }
+  .grid-img-col {
+    border-right: 1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .grid-product-img { width: 100%; object-fit: cover; }
+  .grid-no-img { width: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; opacity: .3; }
+  .grid-img-more { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.6); color: #fff; font-size: .62rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+  .grid-pack-col { padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .grid-pack-label { font-size: .58rem; font-weight: 800; color: rgba(255,255,255,.4); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 3px; }
+  .grid-pack-row { display: flex; flex-direction: column; gap: 1px; margin-bottom: 4px; }
+  .grid-pack-strength { font-size: .72rem; font-weight: 700; color: #fff; }
+  .grid-pack-mrp { font-size: .68rem; color: #ffd580; font-weight: 600; }
+  .grid-pack-inv { font-size: .72rem; color: #ffb347; font-weight: 800; }
+  /* Grid bottom: brand+generic */
+  .grid-brand-section { padding: 8px 10px 10px; border-top: 1px solid rgba(255,255,255,.1); display: flex; flex-direction: column; gap: 4px; }
+  .pres-badge { font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 4px; display: inline-block; color: #fff; align-self: flex-start; }
+  .grid-brand-row { margin-bottom: 3px; }
+  .grid-brand-name { font-size: .92rem; font-weight: 800; color: #ffffff; line-height: 1.2; }
+  .grid-generic-name { font-size: .72rem; font-weight: 500; color: #7ee8d0; line-height: 1.3; margin-top: 1px; }
 
   /* ── SINGLE PRODUCT FULL SCREEN ── */
   .single-product-view {
-    flex: 1; display: none;
-    flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; gap: 12px; padding: 10px 24px 16px;
+    flex: 1; display: none; flex-direction: column; overflow: hidden;
   }
-  .single-product-img {
-    max-width: 90%; max-height: 52vh; object-fit: contain;
-    border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,.45);
+  /* Single top: image left + pack right */
+  .single-top-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    flex: 1; min-height: 0; border-bottom: 1px solid rgba(255,255,255,.1);
   }
+  .single-img-col {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 14px; gap: 10px;
+    border-right: 1px solid rgba(255,255,255,.1);
+    background: rgba(0,0,0,.15); overflow: hidden;
+  }
+  .single-hero-img { max-width: 100%; max-height: 44vh; object-fit: contain; border-radius: 12px; box-shadow: 0 6px 30px rgba(0,0,0,.5); }
+  .single-no-img { font-size: 5rem; opacity: .2; }
   .single-img-thumbs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .single-img-thumb {
-    width: 52px; height: 52px; object-fit: cover;
-    border-radius: 8px; border: 2px solid rgba(255,255,255,.2);
-    cursor: pointer; transition: border-color .15s;
-  }
+  .single-img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 7px; border: 2px solid rgba(255,255,255,.2); cursor: pointer; transition: border-color .15s; }
   .single-img-thumb.active { border-color: #2da58e; }
+  /* Pack col */
+  .single-pack-col { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; justify-content: center; }
+  .single-pack-label { font-size: .65rem; font-weight: 800; color: rgba(255,255,255,.4); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .single-pack-brand-label { font-size: .72rem; font-weight: 700; color: #7ee8d0; margin-top: 8px; margin-bottom: 3px; }
+  .single-pack-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; padding-left: 8px; border-left: 2px solid rgba(255,183,71,.4); }
+  .single-pack-strength { font-size: .95rem; font-weight: 800; color: #ffffff; }
+  .single-pack-mrp { font-size: .85rem; color: #ffd580; font-weight: 600; }
+  .single-pack-inv { font-size: .95rem; color: #ffb347; font-weight: 800; }
+  /* Brand/generic bottom */
+  .single-bottom-section { padding: 12px 20px; background: rgba(0,0,0,.2); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+  .single-specialty-badge { font-size: .72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; color: #fff; align-self: flex-start; }
+  .single-brands-area { display: flex; flex-wrap: wrap; gap: 14px; }
+  .single-brand-block { min-width: 180px; }
+  .single-brand-name { font-size: 1.6rem; font-weight: 800; color: #ffffff; line-height: 1.15; }
+  .single-generic-name { font-size: .85rem; font-weight: 500; color: #7ee8d0; line-height: 1.4; margin-top: 2px; }
 
-  /* ROW 1 — Brand Names: large, bright white */
-  .single-row1 { text-align: center; }
-  .single-brand-name { font-size: 2rem; font-weight: 800; color: #ffffff; line-height: 1.2; }
-
-  /* ROW 2 — Generic Names: bright cyan, clearly readable */
-  .single-row2 { text-align: center; }
-  .single-generic-name { font-size: 1rem; font-weight: 600; color: #7ee8d0; line-height: 1.4; }
-
-  /* ROW 3 — Pack / MRP / Inv Rate: bright orange, centered */
-  .single-row3 { text-align: center; }
-  .single-rates { display: flex; flex-direction: column; gap: 4px; align-items: center; }
-  .single-rates .price-tag-row { font-size: 1rem; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .single-rates .price-tag-row .strength,
-  .single-rates .price-tag-row .mrp,
-  .single-rates .price-tag-row .inv,
-  .single-rates .price-tag-row .legacy-price { color: #ffb347 !important; font-weight: 700; }
-  .single-rates .price-tag-row .inv { font-weight: 800; font-size: 1.1rem; }
-  .single-rates .price-brand-label { color: #7ee8d0; font-size: .8rem; margin-top: 6px; }
-
-  /* Bottom bar — slim counter only */
-  .pres-bottombar {
-    display: flex; align-items: center; justify-content: center;
-    padding: 5px 20px 8px; flex-shrink: 0;
-    background: rgba(0,0,0,.25);
-  }
+  /* Bottom bar */
+  .pres-bottombar { display: flex; align-items: center; justify-content: center; padding: 5px 20px 8px; flex-shrink: 0; background: rgba(0,0,0,.25); }
   .pres-slide-num { color: rgba(255,255,255,.4); font-size: .75rem; text-align: center; }
-  /* Swipe hint */
   .swipe-hint { font-size: .68rem; color: rgba(255,255,255,.25); text-align: center; padding: 3px 0; letter-spacing: .5px; }
 
   /* ── IMAGE SIZE CONTROL ── */
-  .img-size-control {
-    display: flex; align-items: center; gap: 8px;
-    color: rgba(255,255,255,.5); font-size: .75rem;
-  }
+  .img-size-control { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.5); font-size: .75rem; }
   .img-size-control input[type="range"] { width: 80px; }
 
   /* ── EMPTY STATE ── */
@@ -1736,25 +1731,73 @@ function renderSlide() {
   if (viewMode === 'grid') {
     gridEl.style.display = 'grid';
     singleEl.style.display = 'none';
-    const imgH = Math.round(160 * (imageSizePct / 100));
+    const imgH = Math.round(120 * (imageSizePct / 100));
     gridEl.innerHTML = prods.map(p => {
       const brands = getProductBrandRows(p);
-      // Composition = all generic names joined
-      const brandNames = brands.map(r => r.brand).filter(Boolean);
-      const genericNames = brands.map(r => r.generic).filter(Boolean);
+      const imgs = getProductImages(p);
+      const hasNestedRates = p.brandRows && p.brandRows.some(b => b.mrpRows && b.mrpRows.length);
+
+      // Build per-brand pack/strength+rate summary for top-right
+      let packHtml = '';
+      if (hasNestedRates) {
+        packHtml = brands.map(b => {
+          const rows = (b.mrpRows || []).filter(m => m.mrp);
+          if (!rows.length) return '';
+          const multiBrand = brands.filter(x => x.mrpRows && x.mrpRows.length).length > 1;
+          const label = multiBrand ? `<div style="font-size:.62rem;color:#7ee8d0;font-weight:700;margin-bottom:1px">${b.brand}</div>` : '';
+          return label + rows.map(m => {
+            const inv = m.invoiceRate !== null && m.invoiceRate !== undefined ? m.invoiceRate
+              : m.mrp ? Math.round((parseFloat(m.mrp) - parseFloat(m.mrp) * 17.35 / 100) * 100) / 100 : null;
+            return `<div class="grid-pack-row">
+              ${m.strength ? `<span class="grid-pack-strength">${m.strength}</span>` : ''}
+              ${m.mrp ? `<span class="grid-pack-mrp">₹${m.mrp}</span>` : ''}
+              ${inv !== null ? `<span class="grid-pack-inv">Inv ₹${inv}</span>` : ''}
+            </div>`;
+          }).join('');
+        }).join('');
+      } else {
+        // Legacy
+        const rows = getProductMrpRows(p);
+        packHtml = rows.map(r => r.legacyPrice
+          ? `<div class="grid-pack-row"><span class="grid-pack-inv">${r.legacyPrice}</span></div>`
+          : `<div class="grid-pack-row">
+              ${r.strength ? `<span class="grid-pack-strength">${r.strength}</span>` : ''}
+              ${r.mrp ? `<span class="grid-pack-mrp">₹${r.mrp}</span>` : ''}
+              ${r.invoiceRate !== null ? `<span class="grid-pack-inv">Inv ₹${r.invoiceRate}</span>` : ''}
+             </div>`
+        ).join('');
+      }
+
+      // Brand + Generic rows
+      const brandGenericHtml = brands.map(b => `
+        <div class="grid-brand-row">
+          <div class="grid-brand-name">${b.brand}</div>
+          ${b.generic ? `<div class="grid-generic-name">${b.generic}</div>` : ''}
+        </div>`).join('');
+
       return `
         <div class="pres-product-card">
-          ${renderImageMosaic(getProductImages(p), imgH)}
-          <span class="pres-badge ${getSpecialtyColor(p.specialty)}">${p.category || p.specialty}</span>
-          <div class="pres-row1">
-            ${brandNames.map(b => `<div class="pres-brand-name">${b}</div>`).join('')}
+          <!-- TOP: Image left + Pack/Strength right -->
+          <div class="grid-top-row">
+            <div class="grid-img-col">
+              ${imgs.length
+                ? `<img src="${imgs[0]}" class="grid-product-img" style="height:${imgH}px">`
+                : `<div class="grid-no-img" style="height:${imgH}px">💊</div>`}
+              ${imgs.length > 1 ? `<div class="grid-img-more">+${imgs.length - 1}</div>` : ''}
+            </div>
+            <div class="grid-pack-col">
+              <div class="grid-pack-label">PACK / RATE</div>
+              ${packHtml || '<div style="color:rgba(255,255,255,.3);font-size:.72rem">—</div>'}
+            </div>
           </div>
-          ${genericNames.length ? `<div class="pres-row2">${genericNames.map(g => `<div class="pres-generic-name">${g}</div>`).join('')}</div>` : ''}
-          <div class="pres-row3 pres-price-block">${renderPriceTags(p, 'price-tag-list')}</div>
+          <!-- BOTTOM: Brand + Generic rows -->
+          <div class="grid-brand-section">
+            <span class="pres-badge ${getSpecialtyColor(p.specialty)}">${p.category || p.specialty}</span>
+            ${brandGenericHtml}
+          </div>
         </div>`;
     }).join('');
 
-    // Slide num = set index
     document.getElementById('pres-slide-num').textContent =
       `Set ${presIndex + 1} / ${presSets.length}`;
   } else {
@@ -1777,30 +1820,78 @@ function renderSingleProduct(prods) {
   const imgs = getProductImages(p);
   singleImageActiveIndex = Math.max(0, Math.min(imgs.length - 1, singleImageActiveIndex));
   const brands = getProductBrandRows(p);
-  const brandNames = brands.map(r => r.brand).filter(Boolean);
-  const genericNames = brands.map(r => r.generic).filter(Boolean);
-  const imgMaxVh = Math.round(52 * (imageSizePct / 100));
+  const hasNestedRates = p.brandRows && p.brandRows.some(b => b.mrpRows && b.mrpRows.length);
 
+  // Image section with thumbnails
   const heroImg = imgs.length
-    ? `<img src="${imgs[singleImageActiveIndex]}" class="single-product-img" style="max-height:${imgMaxVh}vh">`
-    : '';
+    ? `<img src="${imgs[singleImageActiveIndex]}" class="single-hero-img">`
+    : `<div class="single-no-img">💊</div>`;
   const thumbs = imgs.length > 1
     ? `<div class="single-img-thumbs">
-        ${imgs.map((img, i) => `<img src="${img}" class="single-img-thumb ${i === singleImageActiveIndex ? 'active' : ''}"
-          onclick="singleImageActiveIndex=${i};renderSingleProduct(presSets[presIndex].products.map(id=>products.find(pr=>pr.id===id)).filter(Boolean))">`
+        ${imgs.map((img, i) => `
+          <img src="${img}" class="single-img-thumb ${i === singleImageActiveIndex ? 'active' : ''}"
+            onclick="singleImageActiveIndex=${i};renderSingleProduct(presSets[presIndex].products.map(id=>products.find(pr=>pr.id===id)).filter(Boolean))">`
         ).join('')}
        </div>`
     : '';
 
+  // Pack/strength/rate section for top-right
+  let packHtml = '';
+  if (hasNestedRates) {
+    packHtml = brands.map(b => {
+      const rows = (b.mrpRows || []).filter(m => m.mrp);
+      if (!rows.length) return '';
+      const multiBrand = brands.filter(x => x.mrpRows && x.mrpRows.length).length > 1;
+      const label = multiBrand
+        ? `<div class="single-pack-brand-label">${b.brand}</div>` : '';
+      return label + rows.map(m => {
+        const inv = m.invoiceRate !== null && m.invoiceRate !== undefined ? m.invoiceRate
+          : m.mrp ? Math.round((parseFloat(m.mrp) - parseFloat(m.mrp) * 17.35 / 100) * 100) / 100 : null;
+        return `<div class="single-pack-row">
+          ${m.strength ? `<span class="single-pack-strength">${m.strength}</span>` : ''}
+          ${m.mrp ? `<span class="single-pack-mrp">MRP ₹${m.mrp}</span>` : ''}
+          ${inv !== null ? `<span class="single-pack-inv">Inv ₹${inv}</span>` : ''}
+        </div>`;
+      }).join('');
+    }).join('');
+  } else {
+    const rows = getProductMrpRows(p);
+    packHtml = rows.map(r => r.legacyPrice
+      ? `<div class="single-pack-row"><span class="single-pack-inv">${r.legacyPrice}</span></div>`
+      : `<div class="single-pack-row">
+          ${r.strength ? `<span class="single-pack-strength">${r.strength}</span>` : ''}
+          ${r.mrp ? `<span class="single-pack-mrp">MRP ₹${r.mrp}</span>` : ''}
+          ${r.invoiceRate !== null ? `<span class="single-pack-inv">Inv ₹${r.invoiceRate}</span>` : ''}
+         </div>`
+    ).join('');
+  }
+
+  // Brand + Generic rows
+  const brandGenericHtml = brands.map(b => `
+    <div class="single-brand-block">
+      <div class="single-brand-name">${b.brand}</div>
+      ${b.generic ? `<div class="single-generic-name">${b.generic}</div>` : ''}
+    </div>`).join('');
+
   el.innerHTML = `
-    <span style="font-size:.78rem;font-weight:700;padding:4px 14px;border-radius:20px;color:#fff;background:${getSpecialtyBg(p.specialty)}">${p.category || p.specialty}</span>
-    ${heroImg}
-    ${thumbs}
-    <div class="single-row1">
-      ${brandNames.map(b => `<div class="single-brand-name">${b}</div>`).join('')}
+    <!-- TOP ROW: Image left + Pack/Strength right -->
+    <div class="single-top-row">
+      <div class="single-img-col">
+        ${heroImg}
+        ${thumbs}
+      </div>
+      <div class="single-pack-col">
+        <div class="single-pack-label">PACK / STRENGTH / RATE</div>
+        ${packHtml || '<div style="color:rgba(255,255,255,.3)">—</div>'}
+      </div>
     </div>
-    ${genericNames.length ? `<div class="single-row2">${genericNames.map(g => `<div class="single-generic-name">${g}</div>`).join('')}</div>` : ''}
-    <div class="single-row3 single-rates">${renderPriceTags(p, 'price-tag-list')}</div>
+    <!-- BOTTOM: Specialty badge + Brand/Generic rows -->
+    <div class="single-bottom-section">
+      <span class="single-specialty-badge" style="background:${getSpecialtyBg(p.specialty)}">${p.category || p.specialty}</span>
+      <div class="single-brands-area">
+        ${brandGenericHtml}
+      </div>
+    </div>
   `;
 
   document.getElementById('pres-slide-num').textContent =
