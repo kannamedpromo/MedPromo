@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MedPromo">
 <meta name="theme-color" content="#1a2d40">
+<link rel="manifest" href="/medpromo/manifest.json">
 <title>MedPromo — Visual Product Promotion Manager</title>
 <style>
   :root {
@@ -2390,6 +2391,13 @@ function triggerInstall() {
 
 // ── INIT ──
 initStorage();
+
+// ── SERVICE WORKER REGISTRATION — enables offline use ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/medpromo/sw.js')
+    .then(() => console.log('MedPromo: Service Worker registered'))
+    .catch(e => console.log('SW registration failed:', e));
+}
 </script>
 </body>
 </html>
