@@ -206,14 +206,12 @@
   .product-actions { display: flex; gap: 6px; margin-top: 8px; }
   .del-btn {
     position: absolute; top: 8px; right: 8px;
-    width: 26px; height: 26px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: #fff; border: 1.5px solid var(--border); cursor: pointer;
-    font-size: .85rem; color: var(--danger); opacity: 1;
-    box-shadow: 0 1px 4px rgba(0,0,0,.15);
-    z-index: 2;
+    background: none; border: none; cursor: pointer;
+    font-size: 1rem; color: var(--text2); opacity: 0;
+    transition: opacity .15s;
   }
-  .del-btn:active { background: var(--danger); color: #fff; }
+  .product-card:hover .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--danger); }
 
   /* ── SEARCH / FILTER ── */
   .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
@@ -1440,23 +1438,11 @@ function clearProductForm() {
 
 function deleteProduct(id) {
   const p = products.find(x => x.id === id);
-  if (!p) return;
-  const label = getProductBrandRows(p).map(r => r.brand).join(' / ') || 'this product';
-  const setsUsingIt = promoSets.filter(s => s.products.includes(id));
-  let msg = `Delete "${label}"? This cannot be undone.`;
-  if (setsUsingIt.length) {
-    msg += `\n\nIt will also be removed from ${setsUsingIt.length} promo set(s): ${setsUsingIt.map(s => s.name).join(', ')}.`;
-  }
-  if (!confirm(msg)) return;
-
+  const name = p ? (p.name || 'this product') : 'this product';
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   products = products.filter(p => p.id !== id);
-  // Clean it out of any promo sets so they don't keep a dangling reference
-  promoSets.forEach(s => { s.products = s.products.filter(pid => pid !== id); });
-
   save();
   renderProducts();
-  renderSets();
-  renderPresentPage();
 }
 
 function clearAllProducts() {
@@ -1484,7 +1470,6 @@ function renderProducts() {
   }
   grid.innerHTML = filtered.map(p => `
     <div class="product-card" title="${p.usp||''}">
-      <button class="del-btn" onclick="deleteProduct(${p.id})" title="Delete">✕</button>
       ${renderImageMosaic(getProductImages(p))}
       <div><span class="product-badge ${getSpecialtyColor(p.specialty)}">${p.specialty}</span></div>
       ${renderBrandTags(p, 'brand-tag-list product-name')}
@@ -1493,6 +1478,7 @@ function renderProducts() {
       ${renderPriceTags(p)}
       <div class="product-actions">
         <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">🗑 Delete</button>
       </div>
     </div>
   `).join('');
