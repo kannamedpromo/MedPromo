@@ -2267,33 +2267,80 @@ function exportDataTextOnly() {
 function importData(input) {
   const file = input.files[0];
   if (!file) return;
+
+  showAlert('backup-alert', '⏳ Reading file...', 'success');
+
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
-      const data = JSON.parse(e.target.result);
-      if (!data.products || !data.promoSets) {
-        showAlert('backup-alert', 'This file does not look like a valid MedPromo backup.', 'error');
+      // Parse JSON
+      let data;
+      try {
+        data = JSON.parse(e.target.result);
+      } catch(parseErr) {
+        showAlert('backup-alert', '❌ File could not be read. Make sure it is a valid JSON file.', 'error');
+        input.value = '';
         return;
       }
-      const mode = confirm(
-        `Found ${data.products.length} products and ${data.promoSets.length} promo sets.\n\nPress OK to MERGE with your existing data, or Cancel to REPLACE everything currently saved.`
-      );
-      if (mode) {
-        // Merge — avoid duplicate IDs by reassigning new ones to incoming records
-        data.products.forEach(p => products.push({ ...p, id: Date.now() + Math.random() }));
-        data.promoSets.forEach(s => promoSets.push({ ...s, id: Date.now() + Math.random() }));
-      } else {
-        if (!confirm('This will permanently erase your current products and sets. Continue?')) return;
-        products = data.products;
-        promoSets = data.promoSets;
+
+      if (!data.products || !Array.isArray(data.products)) {
+        showAlert('backup-alert', '❌ This does not look like a valid MedPromo backup.', 'error');
+        input.value = '';
+        return;
       }
-      save();
-      renderProducts();
-      renderSets();
-      renderPresentPage();
-      showAlert('backup-alert', 'Backup imported successfully!', 'success');
+
+      const incoming = data.products;
+      const incomingSets = data.promoSets || [];
+      const total = incoming.length;
+
+      const doMerge = confirm(
+        `Found ${total} products and ${incomingSets.length} promo sets.\n\nTap OK to MERGE (keeps your existing data)\nTap Cancel to go back.`
+      );
+      if (!doMerge) { input.value = ''; return; }
+
+      showAlert('backup-alert', `⏳ Importing ${total} products in small batches — please wait...`, 'success');
+
+      // Process in small chunks of 5 to avoid memory crash on old devices
+      const CHUNK = 5;
+      const baseTime = Date.now();
+
+      for (let i = 0; i < incoming.length; i += CHUNK) {
+        const chunk = incoming.slice(i, i + CHUNK);
+        chunk.forEach((p, j) => {
+          products.push({ ...p, id: baseTime + i + j + Math.random() });
+        });
+        // Yield to browser every chunk so it doesn't freeze
+        await new Promise(r => setTimeout(r, 30));
+        // Update progress
+        const done = Math.min(i + CHUNK, total);
+        showAlert('backup-alert', `⏳ Importing... ${done}/${total} products`, 'success');
+      }
+
+      // Add promosets
+      incomingSets.forEach((s, j) => {
+        promoSets.push({ ...s, id: Date.now() + j + Math.random() });
+      });
+
+      // Save to IndexedDB (async, fire and forget)
+      showAlert('backup-alert', '⏳ Saving to device...', 'success');
+      await new Promise(r => setTimeout(r, 100));
+
+      if (dbInstance) {
+        await idbSet('medpromo_products', products).catch(e => console.error(e));
+        await idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
+      }
+
+      // Update UI stats only (don't render full product grid — too heavy)
+      updateStats();
+      updateSidebarSpecialties();
+      updateSelectOptions();
+
+      showAlert('backup-alert',
+        `✅ Import complete! ${total} products added. Go to Products tab to view them.`,
+        'success');
+
     } catch (err) {
-      showAlert('backup-alert', 'Could not read this file. Make sure it is a MedPromo backup JSON.', 'error');
+      showAlert('backup-alert', '❌ Import failed: ' + err.message, 'error');
     }
     input.value = '';
   };
