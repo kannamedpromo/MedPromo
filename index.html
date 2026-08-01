@@ -383,46 +383,97 @@
   .grid-pack-mrp { font-size: .68rem; color: #ffd580; font-weight: 600; }
   .grid-pack-inv { font-size: .78rem; color: #ffb347; font-weight: 800; }
 
-  /* ── SINGLE PRODUCT FULL SCREEN ── */
+  /* ── SINGLE PRODUCT VIEW — FULL SCREEN IMAGE ── */
   .single-product-view {
-    flex: 1; display: none; flex-direction: column; overflow: hidden;
+    flex: 1; display: none; flex-direction: column;
+    overflow: hidden; position: relative;
   }
-  /* Single top: image left + pack right */
-  .single-top-row {
-    display: grid; grid-template-columns: 1fr 1fr;
-    flex: 1; min-height: 0; border-bottom: 1px solid rgba(255,255,255,.1);
+
+  /* Full screen image takes entire view */
+  .single-img-fullarea {
+    flex: 1; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: #000; overflow: hidden; min-height: 0;
   }
-  .single-img-col {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 14px; gap: 10px;
-    border-right: 1px solid rgba(255,255,255,.1);
-    background: rgba(0,0,0,.15); overflow: hidden;
+  .single-img-fullarea img.single-hero-img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transition: all .3s;
   }
-  .single-hero-img { max-width: 100%; max-height: 44vh; object-fit: contain; border-radius: 12px; box-shadow: 0 6px 30px rgba(0,0,0,.5); }
+  /* Shrunk image mode */
+  .single-img-fullarea.shrunk img.single-hero-img {
+    width: 50%; height: 50%;
+    object-fit: contain;
+  }
   .single-no-img { font-size: 5rem; opacity: .2; }
-  .single-img-thumbs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .single-img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 7px; border: 2px solid rgba(255,255,255,.2); cursor: pointer; transition: border-color .15s; }
+
+  /* Floating icon bar — top right of image */
+  .single-icon-bar {
+    position: absolute;
+    top: 10px; right: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 10;
+  }
+  .s-icon-btn {
+    width: 40px; height: 40px;
+    background: rgba(0,0,0,.55);
+    border: 1.5px solid rgba(255,255,255,.2);
+    border-radius: 10px;
+    color: #fff; font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .s-icon-btn:hover, .s-icon-btn:active { background: rgba(45,165,142,.7); }
+  .s-icon-btn.active { background: rgba(45,165,142,.85); border-color: #2da58e; }
+
+  /* Thumbnails strip at bottom of image */
+  .single-img-thumbs {
+    position: absolute;
+    bottom: 8px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px; z-index: 10;
+  }
+  .single-img-thumb {
+    width: 42px; height: 42px; object-fit: cover;
+    border-radius: 7px; border: 2px solid rgba(255,255,255,.3);
+    cursor: pointer; transition: border-color .15s;
+  }
   .single-img-thumb.active { border-color: #2da58e; }
-  /* Pack col */
-  .single-pack-col { padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; justify-content: center; }
-  .single-pack-label { font-size: .65rem; font-weight: 800; color: rgba(255,255,255,.4); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+
+  /* Bottom info strip — brand + generic + rates */
+  .single-bottom-section {
+    padding: 10px 16px 8px;
+    background: rgba(0,0,0,.85);
+    display: flex; flex-direction: column; gap: 6px;
+    flex-shrink: 0; max-height: 45vh; overflow-y: auto;
+  }
+  .single-top-strip {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .single-specialty-badge {
+    font-size: .7rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px;
+    color: #fff; flex-shrink: 0;
+  }
+  .single-brands-area { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+  .single-brand-block { min-width: 140px; }
+  .single-brand-name { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1.15; }
+  .single-generic-name { font-size: .82rem; color: #7ee8d0; line-height: 1.4; margin-top: 1px; }
+
+  /* Rates section — hidden by default, toggled by icon */
+  .single-rates-section {
+    display: none;
+    border-top: 1px solid rgba(255,255,255,.12);
+    padding-top: 8px; margin-top: 2px;
+  }
+  .single-rates-section.show { display: block; }
   .single-pack-brand-label { font-size: .72rem; font-weight: 700; color: #7ee8d0; margin-top: 8px; margin-bottom: 3px; }
-  .single-pack-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; padding-left: 8px; border-left: 2px solid rgba(255,183,71,.4); }
-  .single-pack-strength { font-size: .95rem; font-weight: 800; color: #ffffff; }
+  .single-pack-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; padding-left: 8px; border-left: 2px solid rgba(255,183,71,.45); align-items: baseline; }
+  .single-pack-strength { font-size: .92rem; font-weight: 800; color: #fff; }
   .single-pack-mrp { font-size: .85rem; color: #ffd580; font-weight: 600; }
   .single-pack-inv { font-size: .95rem; color: #ffb347; font-weight: 800; }
-  /* Brand/generic bottom */
-  .single-bottom-section { padding: 12px 20px; background: rgba(0,0,0,.2); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-  .single-specialty-badge { font-size: .72rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; color: #fff; align-self: flex-start; }
-  .single-brands-area { display: flex; flex-wrap: wrap; gap: 14px; }
-  .single-brand-block { min-width: 180px; }
-  .single-brand-name { font-size: 1.6rem; font-weight: 800; color: #ffffff; line-height: 1.15; }
-  .single-generic-name { font-size: .85rem; font-weight: 500; color: #7ee8d0; line-height: 1.4; margin-top: 2px; }
 
-  /* Bottom bar */
-  .pres-bottombar { display: flex; align-items: center; justify-content: center; padding: 5px 20px 8px; flex-shrink: 0; background: rgba(0,0,0,.25); }
-  .pres-slide-num { color: rgba(255,255,255,.4); font-size: .75rem; text-align: center; }
-  .swipe-hint { font-size: .68rem; color: rgba(255,255,255,.25); text-align: center; padding: 3px 0; letter-spacing: .5px; }
 
   /* ── FULLSCREEN IMAGE VIEWER ── */
   #img-fullscreen-overlay {
@@ -2042,10 +2093,13 @@ function renderSlide() {
 }
 
 // ── SINGLE PRODUCT VIEW ──
+let singleImgShrunk = false; // track shrink state across products
+let singleRatesShown = false; // track rates state
+
 function renderSingleProduct(prods) {
   const el = document.getElementById('single-product-view');
   if (!prods.length) {
-    el.innerHTML = `<div style="color:rgba(255,255,255,.5)">No products in this set.</div>`;
+    el.innerHTML = `<div style="color:rgba(255,255,255,.5);padding:20px">No products in this set.</div>`;
     document.getElementById('pres-slide-num').textContent = '';
     return;
   }
@@ -2055,28 +2109,21 @@ function renderSingleProduct(prods) {
   singleImageActiveIndex = Math.max(0, Math.min(imgs.length - 1, singleImageActiveIndex));
   const brands = getProductBrandRows(p);
   const hasNestedRates = p.brandRows && p.brandRows.some(b => b.mrpRows && b.mrpRows.length);
-  const imgsJson = JSON.stringify(imgs).replace(/"/g, '&quot;');
+  const multiImg = imgs.length > 1;
 
-  // Hero image — full screen on tap
+  // Hero image
   const heroImg = imgs.length
-    ? `<img src="${imgs[singleImageActiveIndex]}" class="single-hero-img"
-         style="cursor:pointer"
-         onclick="openFullscreen(${imgsJson},${singleImageActiveIndex})">`
+    ? `<img src="${imgs[singleImageActiveIndex]}" class="single-hero-img" id="single-hero-img">`
     : `<div class="single-no-img">💊</div>`;
 
-  // Thumbnails
-  const thumbs = imgs.length > 1
+  // Thumbnail strip (positioned absolute at bottom of image area)
+  const thumbsHtml = multiImg
     ? `<div class="single-img-thumbs">
         ${imgs.map((img, i) => `
           <img src="${img}" class="single-img-thumb ${i === singleImageActiveIndex ? 'active' : ''}"
-            onclick="singleImageActiveIndex=${i};renderSingleProduct(presSets[presIndex].products.map(id=>products.find(pr=>pr.id===id)).filter(Boolean))">`
-        ).join('')}
+            onclick="singleImageActiveIndex=${i};renderSingleProduct(presSets[presIndex].products.map(id=>products.find(pr=>pr.id===id)).filter(Boolean))">
+        `).join('')}
        </div>`
-    : '';
-
-  // Zoom button
-  const zoomBtn = imgs.length
-    ? `<button class="single-zoom-btn" onclick="openFullscreen(${imgsJson},${singleImageActiveIndex})">🔍 Full Screen</button>`
     : '';
 
   // Build rates HTML
@@ -2109,35 +2156,64 @@ function renderSingleProduct(prods) {
     ).join('');
   }
 
-  // Brand + Generic rows
+  // Brand + Generic
   const brandGenericHtml = brands.map(b => `
     <div class="single-brand-block">
       <div class="single-brand-name">${b.brand}</div>
       ${b.generic ? `<div class="single-generic-name">${b.generic}</div>` : ''}
     </div>`).join('');
 
+  // Icon bar — shrink (if multi-brand), rates toggle
+  const shrinkIcon = `<button class="s-icon-btn ${singleImgShrunk ? 'active' : ''}"
+    id="shrink-btn" title="Shrink/Expand image"
+    onclick="toggleSingleImgSize()">⊡</button>`;
+
+  const ratesIcon = ratesHtml ? `<button class="s-icon-btn ${singleRatesShown ? 'active' : ''}"
+    id="rates-icon-btn" title="Show/Hide Rates"
+    onclick="toggleSingleRates()">₹</button>` : '';
+
   el.innerHTML = `
-    <!-- TOP: Image (left, full screen on tap) -->
-    <div class="single-img-col" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.15);border-bottom:1px solid rgba(255,255,255,.1);">
+    <!-- FULL SCREEN IMAGE AREA -->
+    <div class="single-img-fullarea ${singleImgShrunk ? 'shrunk' : ''}" id="single-img-fullarea">
       ${heroImg}
-      ${thumbs}
-      ${zoomBtn}
-    </div>
-    <!-- BOTTOM: Specialty + Brand/Generic + Show Rates -->
-    <div class="single-bottom-section">
-      <span class="single-specialty-badge" style="background:${getSpecialtyBg(p.specialty)}">${p.category || p.specialty}</span>
-      <div class="single-brands-area">
-        ${brandGenericHtml}
+      ${thumbsHtml}
+      <!-- FLOATING ICON BAR -->
+      <div class="single-icon-bar">
+        ${shrinkIcon}
+        ${ratesIcon}
       </div>
-      ${ratesHtml ? `
-        <button class="show-rates-btn" onclick="toggleRates(this,'single-rates-panel')">💰 Show Rates</button>
-        <div class="rates-panel" id="single-rates-panel">${ratesHtml}</div>
-      ` : ''}
+    </div>
+    <!-- BOTTOM INFO STRIP -->
+    <div class="single-bottom-section" id="single-bottom-section">
+      <div class="single-top-strip">
+        <span class="single-specialty-badge" style="background:${getSpecialtyBg(p.specialty)}">${p.category || p.specialty}</span>
+      </div>
+      <div class="single-brands-area">${brandGenericHtml}</div>
+      ${ratesHtml ? `<div class="single-rates-section ${singleRatesShown ? 'show' : ''}" id="single-rates-section">${ratesHtml}</div>` : ''}
     </div>
   `;
 
   document.getElementById('pres-slide-num').textContent =
     `Product ${singleProductIndex + 1} / ${prods.length}`;
+}
+
+function toggleSingleImgSize() {
+  singleImgShrunk = !singleImgShrunk;
+  const area = document.getElementById('single-img-fullarea');
+  const btn = document.getElementById('shrink-btn');
+  if (area) area.classList.toggle('shrunk', singleImgShrunk);
+  if (btn) {
+    btn.classList.toggle('active', singleImgShrunk);
+    btn.textContent = singleImgShrunk ? '⊞' : '⊡';
+  }
+}
+
+function toggleSingleRates() {
+  singleRatesShown = !singleRatesShown;
+  const panel = document.getElementById('single-rates-section');
+  const btn = document.getElementById('rates-icon-btn');
+  if (panel) panel.classList.toggle('show', singleRatesShown);
+  if (btn) btn.classList.toggle('active', singleRatesShown);
 }
 
 // Helper: get a specialty background color by index (for inline badge)
@@ -2187,6 +2263,7 @@ function singleProductNavFn(dir) {
   presIndex = allProds[nextFlat].setIdx;
   singleProductIndex = allProds[nextFlat].prodIdx;
   singleImageActiveIndex = 0;
+  singleRatesShown = false; // reset rates on new product
   animateSlide(dir);
   renderSlide();
 }
