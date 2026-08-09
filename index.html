@@ -1801,9 +1801,24 @@ function saveSet() {
 function deleteSet(id) {
   if (!confirm('Delete this promo set? Products are not deleted.')) return;
   promoSets = promoSets.filter(s => s.id !== id);
-  save();
-  renderSets();
-  renderPresentPage();
+  // Save quietly in background — no re-render
+  if (dbInstance) {
+    idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
+  }
+  // Just remove the card from DOM — no full re-render needed
+  const card = document.getElementById('set-card-' + id);
+  if (card) {
+    card.style.transition = 'opacity .2s';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      card.remove();
+      // If no sets left, show empty message
+      const container = document.getElementById('sets-list');
+      if (container && !container.querySelector('.set-list-item')) {
+        container.innerHTML = '<div class="empty"><div class="emoji">📋</div><p>No sets yet. Create one above!</p></div>';
+      }
+    }, 200);
+  }
 }
 
 // ── EDIT SET ── loads set back into form for editing
@@ -1935,8 +1950,8 @@ function renderSets() {
   container.innerHTML = promoSets.map(s => {
     const prods = s.products.map(id => products.find(p => p.id === id)).filter(Boolean);
 
-    // Build image strip — show up to 8 product images
-    const MAX_IMGS = 8;
+    // Build image strip — limit to 4 thumbnails to avoid memory crash on Tab S2
+    const MAX_IMGS = 4;
     let imgStripHtml = '';
     let shown = 0;
     for (let i = 0; i < prods.length && shown < MAX_IMGS; i++) {
@@ -1954,7 +1969,7 @@ function renderSets() {
     }
 
     return `
-    <div class="set-list-item">
+    <div class="set-list-item" id="set-card-${s.id}">
       <div class="set-list-top">
         <div class="set-info">
           <div class="set-name">${s.name}</div>
