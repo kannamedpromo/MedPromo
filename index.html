@@ -1368,17 +1368,33 @@ function filterBySpecialty(spec) {
 }
 
 // ── SELECT OPTIONS ──
+const DEFAULT_SPECIALTIES = [
+  'Cardiology','Diabetology','Neurology','Pulmonology',
+  'General Medicine','Orthopaedics',
+  'Musculoskeletal / Analgesic / Anti-Inflammatory',
+  'Gynaecology','Gastroenterology','Dermatology',
+  'ENT','Urology','Ophthalmology','Paediatrics',
+  'Psychiatry','Oncology','Nephrology','Endocrinology',
+];
+
 function updateSelectOptions() {
-  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  const userSpecs = [...new Set(products.map(p => p.specialty))].filter(Boolean);
+  // Merge default + user specialties, remove duplicates, sort
+  const allSpecs = [...new Set([...DEFAULT_SPECIALTIES, ...userSpecs])].sort();
+  const specs = allSpecs;
+
+  // Datalist for free-text input — shows all options as suggestions
   const dl = document.getElementById('specialty-list');
   dl.innerHTML = specs.map(s => `<option value="${s}">`).join('');
 
+  // Filter and set dropdowns — only show specialties that have products
+  const productSpecs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
   ['filter-specialty', 's-specialty'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const cur = el.value;
     el.innerHTML = '<option value="">All Specialties</option>' +
-      specs.map(s => `<option value="${s}" ${s === cur ? 'selected' : ''}>${s}</option>`).join('');
+      productSpecs.map(s => `<option value="${s}" ${s === cur ? 'selected' : ''}>${s}</option>`).join('');
   });
 
   const presSpecEl = document.getElementById('present-specialty-select');
@@ -1432,7 +1448,7 @@ function addProduct() {
     name: brandRows[0].brand,
     generic: brandRows[0].generic,
     specialty,
-    mrpRows: brandRows[0].mrpRows, // primary brand's mrpRows for backward compat display
+    mrpRows: brandRows[0].mrpRows,
     price: null,
     category: document.getElementById('p-category').value.trim(),
     dosage: document.getElementById('p-dosage').value.trim(),
@@ -1444,12 +1460,27 @@ function addProduct() {
   if (editingProductId !== null) {
     const idx = products.findIndex(p => p.id === editingProductId);
     if (idx !== -1) products[idx] = { ...products[idx], ...data };
-    save(); renderProducts(); clearProductForm();
-    showAlert('product-alert', `"${data.name}" updated successfully!`, 'success');
+    // Save quietly — no full re-render to prevent crash on Tab S2
+    if (dbInstance) {
+      idbSet('medpromo_products', products).catch(e => console.error(e));
+    }
+    clearProductForm();
+    updateStats();
+    updateSidebarSpecialties();
+    updateSelectOptions();
+    showAlert('product-alert', `✅ "${data.name}" updated! Go to Products tab to view.`, 'success');
   } else {
-    products.push({ id: Date.now() + Math.random(), ...data });
-    save(); renderProducts(); clearProductForm();
-    showAlert('product-alert', `"${data.name}" added successfully!`, 'success');
+    const newProduct = { id: Date.now() + Math.random(), ...data };
+    products.push(newProduct);
+    // Save quietly — no full re-render to prevent crash on Tab S2
+    if (dbInstance) {
+      idbSet('medpromo_products', products).catch(e => console.error(e));
+    }
+    clearProductForm();
+    updateStats();
+    updateSidebarSpecialties();
+    updateSelectOptions();
+    showAlert('product-alert', `✅ "${data.name}" saved successfully! Go to Products tab to view it.`, 'success');
   }
 }
 
