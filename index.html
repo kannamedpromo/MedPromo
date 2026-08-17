@@ -1053,7 +1053,15 @@
         <option value="">All Sections</option>
       </select>
     </div>
-    <div id="gp-picker-list" style="max-height:60vh;overflow-y:auto;padding:8px"></div>
+    <div id="gp-picker-list" style="max-height:55vh;overflow-y:auto;padding:8px"></div>
+    <!-- Multi-select footer -->
+    <div id="gp-picker-footer" style="display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f4f8;border-top:1px solid #ddd;gap:10px;flex-wrap:wrap">
+      <span id="gp-pick-count" style="font-size:.85rem;font-weight:700;color:#1a2d40"></span>
+      <button onclick="pickGPMultiple()"
+        style="background:#2da58e;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.88rem;font-weight:800;cursor:pointer">
+        ➕ Add Selected as Brand Rows
+      </button>
+    </div>
   </div>
 </div>
 
@@ -2911,16 +2919,89 @@ function renderGPList() {
 function renderGPPickerList() {
   const filtered = filterGP('gp-picker-search','gp-picker-section');
   const container = document.getElementById('gp-picker-list');
-  if (!filtered.length) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#888">No products found</div>'; return; }
-  container.innerHTML = filtered.map((p,i) => `
-    <div style="background:${i%2===0?'#fafafa':'#fff'};border:1px solid #eee;border-radius:8px;margin-bottom:6px;padding:10px 12px;display:flex;align-items:center;gap:10px">
-      <div style="flex:1;min-width:0">
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:#888">No products found</div>';
+    return;
+  }
+  container.innerHTML = filtered.map((p,i) => {
+    const safeP = JSON.stringify(p).replace(/'/g,'&#39;');
+    return `<div style="background:${i%2===0?'#fafafa':'#fff'};border:1px solid #eee;border-radius:8px;margin-bottom:6px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <!-- Checkbox for multi-select -->
+      <input type="checkbox" id="gp-chk-${i}" value="${i}"
+        style="width:20px;height:20px;accent-color:#1a2d40;flex-shrink:0;cursor:pointer"
+        onchange="updateGPPickerFooter()">
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="document.getElementById('gp-chk-${i}').click()">
         <div style="font-weight:800;color:#1a3a7a;font-size:.9rem">${p.name}</div>
         <div style="font-size:.75rem;color:#555;margin-top:2px">${p.composition}</div>
-        <div style="font-size:.72rem;color:#888;margin-top:1px">${p.pack} &nbsp;|&nbsp; <span style="color:#c04000;font-weight:700">${fmtR(p.inv1)}</span> &nbsp;|&nbsp; <span style="color:#1a6b8a;font-weight:700">MRP ${fmtR(p.mrp1)}</span></div>
+        <div style="font-size:.72rem;color:#888;margin-top:1px">${p.pack} &nbsp;|&nbsp;
+          <span style="color:#c04000;font-weight:700">${fmtR(p.inv1)}</span> &nbsp;|&nbsp;
+          <span style="color:#1a6b8a;font-weight:700">MRP ${fmtR(p.mrp1)}</span>
+        </div>
       </div>
-      ${gpBtn(p)}
-    </div>`).join('');
+      <button onclick="pickGPProduct(${safeP})"
+        style="background:#1a2d40;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+        ✅ Pick One
+      </button>
+    </div>`;
+  }).join('');
+
+  // Store filtered list for multi-pick reference
+  window._gpPickerFiltered = filtered;
+  updateGPPickerFooter();
+}
+
+function updateGPPickerFooter() {
+  const checked = document.querySelectorAll('#gp-picker-list input[type=checkbox]:checked');
+  const footer = document.getElementById('gp-picker-footer');
+  if (!footer) return;
+  if (checked.length > 0) {
+    footer.style.display = 'flex';
+    footer.querySelector('#gp-pick-count').textContent = checked.length + ' product' + (checked.length>1?'s':'') + ' selected';
+  } else {
+    footer.style.display = 'none';
+  }
+}
+
+function pickGPMultiple() {
+  const checked = document.querySelectorAll('#gp-picker-list input[type=checkbox]:checked');
+  if (!checked.length) return;
+  const filtered = window._gpPickerFiltered || [];
+  const selected = Array.from(checked).map(cb => filtered[parseInt(cb.value)]).filter(Boolean);
+  closeGPPicker();
+  showPage('products');
+  updateBQBar('products');
+  clearProductForm();
+  setTimeout(function() {
+    // Use first product's specialty and section
+    const first = selected[0];
+    document.getElementById('p-specialty').value = first.specialty || 'General Medicine';
+    document.getElementById('p-category').value = first.section || '';
+    document.getElementById('p-dosage').value = '';
+    document.getElementById('p-usp').value = '';
+
+    // Build brand rows from all selected products
+    currentBrandRows = selected.map(function(p, idx) {
+      return {
+        id: Date.now() + idx,
+        brand: p.name,
+        generic: p.composition,
+        mrpRows: [
+          { id: Date.now() + idx*10 + 1, strength: p.pack||'', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
+        ].concat(p.mrp2 ? [{ id: Date.now() + idx*10 + 2, strength: p.pack||'', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
+      };
+    });
+    renderBrandRows();
+
+    var titleEl = document.getElementById('add-product-title');
+    if (titleEl) {
+      titleEl.textContent = 'Review & Add: ' + selected.map(p => p.name).join(', ');
+      titleEl.style.color = '#2da58e';
+    }
+    document.getElementById('page-products').scrollTop = 0;
+    showAlert('product-alert',
+      selected.length + ' GP products loaded as brand rows! Add image if needed, then tap 💊 Add Product.',
+      'success');
+  }, 200);
 }
 
 function openGPPicker() {
@@ -2943,7 +3024,7 @@ function pickGPProduct(p) {
   setTimeout(function() {
     document.getElementById('p-specialty').value = p.specialty || 'General Medicine';
     document.getElementById('p-category').value = p.section || '';
-    document.getElementById('p-dosage').value = p.pack || '';
+    document.getElementById('p-dosage').value = '';
     document.getElementById('p-usp').value = '';
     currentBrandRows = [{
       id: Date.now(),
