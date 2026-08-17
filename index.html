@@ -2944,7 +2944,7 @@ function pickGPProduct(p) {
     document.getElementById('p-specialty').value = p.specialty || 'General Medicine';
     document.getElementById('p-category').value = p.section || '';
     document.getElementById('p-dosage').value = p.pack || '';
-    document.getElementById('p-usp').value = 'Genetic Pharma Sr.' + p.sr;
+    document.getElementById('p-usp').value = '';
     currentBrandRows = [{
       id: Date.now(),
       brand: p.name,
