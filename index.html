@@ -2986,8 +2986,8 @@ function pickGPMultiple() {
         brand: p.name,
         generic: p.composition,
         mrpRows: [
-          { id: Date.now() + idx*10 + 1, strength: p.pack||'', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
-        ].concat(p.mrp2 ? [{ id: Date.now() + idx*10 + 2, strength: p.pack||'', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
+          { id: Date.now() + idx*10 + 1, strength: '', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
+        ].concat(p.mrp2 ? [{ id: Date.now() + idx*10 + 2, strength: '', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
       };
     });
     renderBrandRows();
@@ -3031,8 +3031,8 @@ function pickGPProduct(p) {
       brand: p.name,
       generic: p.composition,
       mrpRows: [
-        { id: Date.now()+1, strength: p.pack||'', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
-      ].concat(p.mrp2 ? [{ id: Date.now()+2, strength: p.pack||'', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
+        { id: Date.now()+1, strength: '', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
+      ].concat(p.mrp2 ? [{ id: Date.now()+2, strength: '', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
     }];
     renderBrandRows();
     var titleEl = document.getElementById('add-product-title');
