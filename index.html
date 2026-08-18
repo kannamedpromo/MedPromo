@@ -905,7 +905,7 @@
           </div>
           <div class="form-group full">
             <label>Brand Names, Generic Names &amp; MRP per Brand *</label>
-            <div style="font-size:.75rem;color:var(--text2);margin-bottom:8px">Each brand can have its own Pack sizes and MRP. Invoice Rate = MRP − 17.35% (auto-calculated).</div>
+            <div style="font-size:.75rem;color:var(--text2);margin-bottom:8px">Each brand can have its own Pack size and MRP. Invoice Rate = MRP − 17.35% (auto-calculated).</div>
             <div id="brand-rows-container"></div>
             <button type="button" class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addBrandRow()">➕ Add Brand / Generic Row</button>
           </div>
@@ -919,8 +919,8 @@
             <input type="text" id="p-category" placeholder="e.g. Antibiotic, Analgesic, Vitamin">
           </div>
           <div class="form-group">
-            <label>Dosage / Strength</label>
-            <input type="text" id="p-dosage" placeholder="e.g. 500mg, 10ml Syrup">
+            <label>Pack Size</label>
+            <input type="text" id="p-dosage" placeholder="e.g. 10x10's, 30ml Bottle, 1x100's">
           </div>
           <div class="form-group full">
             <label>Key Features / USP</label>
@@ -1313,12 +1313,12 @@ function renderBrandRows() {
     currentBrandRows.push({ id: Date.now() + Math.random(), brand: '', generic: '', mrpRows: [{ id: Date.now() + Math.random(), strength: '', mrp: '' }] });
   }
   container.innerHTML = currentBrandRows.map((b, bi) => {
-    const mrpLabel = `<div class="brand-mrp-label"><span>Pack/Strength</span><span>MRP (₹)</span><span>Invoice Rate</span><span></span></div>`;
+    const mrpLabel = `<div class="brand-mrp-label"><span>Pack Size</span><span>MRP (₹)</span><span>Invoice Rate</span><span></span></div>`;
     const mrpRowsHtml = b.mrpRows.map(m => {
       const inv = calcInvoiceRate(m.mrp);
       const invDisplay = inv === null ? '—' : '₹' + inv.toFixed(2);
       return `<div class="brand-mrp-row">
-        <input type="text" placeholder="e.g. 10ml" value="${m.strength}" oninput="updateMrpFieldLive(${b.id},${m.id},'strength',this.value)">
+        <input type="text" placeholder="e.g. 10x10's" value="${m.strength}" oninput="updateMrpFieldLive(${b.id},${m.id},'strength',this.value)">
         <input type="number" step="0.01" placeholder="e.g. 120" value="${m.mrp}" oninput="updateMrpFieldLive(${b.id},${m.id},'mrp',this.value)">
         <div class="brand-mrp-inv" id="inv-${b.id}-${m.id}">${invDisplay}</div>
         <button type="button" class="brand-mrp-remove" onclick="removeMrpRowFromBrand(${b.id},${m.id})">✕</button>
