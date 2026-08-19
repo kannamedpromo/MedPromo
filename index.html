@@ -1331,9 +1331,11 @@ function renderBrandRows() {
         <button type="button" class="brand-block-remove" onclick="removeBrandRow(${b.id})">✕</button>
       </div>
       ${mrpLabel}${mrpRowsHtml}
-      <button type="button" class="btn btn-secondary btn-sm brand-add-mrp-btn" onclick="addMrpRowToBrand(${b.id})">➕ Add Pack / MRP</button>
+      <button type="button" class="btn btn-secondary btn-sm brand-add-mrp-btn" onclick="addMrpRowToBrand(${b.id})">➕ Add Pack / MRP Row</button>
     </div>`;
-  }).join('');
+  }).join('') +
+  // Add Brand button always at bottom of container — visible in both Add and Edit mode
+  `<button type="button" class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%" onclick="addBrandRow()">➕ Add Another Brand / Generic</button>`;
 }
 
 // ── MRP CALCULATION ──
@@ -1666,7 +1668,11 @@ function editProduct(id) {
   document.getElementById('add-product-title').textContent = '✏️ Edit Product';
   document.getElementById('add-product-btn').textContent = '💾 Save Changes';
   document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
-  document.querySelector('#page-products .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Scroll to brand rows container so Add Brand button is visible
+  setTimeout(() => {
+    const brandContainer = document.getElementById('brand-rows-container');
+    if (brandContainer) brandContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
 }
 
 function cancelEdit() { clearProductForm(); }
@@ -2986,8 +2992,8 @@ function pickGPMultiple() {
         brand: p.name,
         generic: p.composition,
         mrpRows: [
-          { id: Date.now() + idx*10 + 1, strength: '', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
-        ].concat(p.mrp2 ? [{ id: Date.now() + idx*10 + 2, strength: '', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
+          { id: Date.now() + idx*10 + 1, strength: p.pack||'', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
+        ].concat(p.mrp2 ? [{ id: Date.now() + idx*10 + 2, strength: p.pack||'', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
       };
     });
     renderBrandRows();
@@ -3031,8 +3037,8 @@ function pickGPProduct(p) {
       brand: p.name,
       generic: p.composition,
       mrpRows: [
-        { id: Date.now()+1, strength: '', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
-      ].concat(p.mrp2 ? [{ id: Date.now()+2, strength: '', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
+        { id: Date.now()+1, strength: p.pack||'', mrp: p.mrp1||'', invoiceRate: p.inv1||null }
+      ].concat(p.mrp2 ? [{ id: Date.now()+2, strength: p.pack||'', mrp: p.mrp2, invoiceRate: p.inv2||null }] : [])
     }];
     renderBrandRows();
     var titleEl = document.getElementById('add-product-title');
