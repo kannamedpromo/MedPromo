@@ -672,7 +672,6 @@
     cursor: pointer; display: flex;
     flex-direction: column; align-items: center; gap: 2px;
     letter-spacing: .3px; text-transform: uppercase;
-    transition: color .15s, background .15s;
     -webkit-tap-highlight-color: transparent;
   }
   .bq-btn .bq-icon { font-size: 1.25rem; line-height: 1; }
@@ -2402,19 +2401,22 @@ function presNavCurrent(dir) {
   }
 }
 
-// Grid view: continuous loop through sets
+// Grid view — instant navigation
 function presNavFn(dir) {
   const total = presSets.length;
-  presIndex = (presIndex + dir + total) % total; // wrap around
+  presIndex = (presIndex + dir + total) % total;
   singleProductIndex = 0;
   singleImageActiveIndex = 0;
-  animateSlide(dir);
   renderSlide();
 }
 
-// Single product view: continuous loop across ALL products across ALL sets
-function singleProductNavFn(dir) {
-  // Build flat list of all products across all sets
+// Cache flat product list for instant swipe navigation
+let _flatProdsCache = null;
+let _flatProdsCacheKey = '';
+
+function getFlatProds() {
+  const key = presSets.map(s => s.id + ':' + s.products.join(',')).join('|');
+  if (_flatProdsCache && _flatProdsCacheKey === key) return _flatProdsCache;
   const allProds = [];
   presSets.forEach((s, si) => {
     s.products.forEach((id, pi) => {
@@ -2422,18 +2424,22 @@ function singleProductNavFn(dir) {
       if (p) allProds.push({ setIdx: si, prodIdx: pi, p });
     });
   });
+  _flatProdsCache = allProds;
+  _flatProdsCacheKey = key;
+  return allProds;
+}
+
+// Single product view — instant navigation using cache
+function singleProductNavFn(dir) {
+  const allProds = getFlatProds();
   if (!allProds.length) return;
-
-  // Find current position in flat list
   const curFlat = allProds.findIndex(x => x.setIdx === presIndex && x.prodIdx === singleProductIndex);
-  const nextFlat = (curFlat + dir + allProds.length) % allProds.length; // wrap around
-
+  const nextFlat = (curFlat + dir + allProds.length) % allProds.length;
   presIndex = allProds[nextFlat].setIdx;
   singleProductIndex = allProds[nextFlat].prodIdx;
   singleImageActiveIndex = 0;
-  singleRatesShown = false; // reset rates on new product
-  animateSlide(dir);
-  renderSlide();
+  singleRatesShown = false;
+  renderSlide(); // instant — no animation delay
 }
 
 function presGridNav(dir) {
@@ -2448,17 +2454,7 @@ function closePresentation() {
   document.getElementById('presentation-overlay').classList.remove('open');
 }
 
-// ── SLIDE ANIMATION (visual flash to confirm swipe) ──
-function animateSlide(dir) {
-  const slide = document.getElementById('pres-slide');
-  slide.style.transition = 'opacity .12s ease';
-  slide.style.opacity = '0.35';
-  setTimeout(() => {
-    slide.style.opacity = '1';
-  }, 130);
-}
-
-// ── SWIPE GESTURE — full overlay, very sensitive, continuous ──
+// ── SWIPE — instant response, no delays ──
 let swipeTouchStartX = 0;
 let swipeTouchStartY = 0;
 let swipeActive = false;
@@ -2481,53 +2477,48 @@ function initSwipe() {
     swipeTouchStartY = e.touches[0].clientY;
     swipeCurrentX = 0;
     swipeActive = true;
-    slide.style.transition = 'none'; // remove transition while dragging
+    slide.style.transition = 'none';
   }, { passive: true });
 
   overlay.addEventListener('touchmove', e => {
     if (!swipeActive) return;
     const dx = e.touches[0].clientX - swipeTouchStartX;
     const dy = e.touches[0].clientY - swipeTouchStartY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
       e.preventDefault();
       swipeCurrentX = dx;
-      // Drag the slide visually — gives rubber band feel
-      slide.style.transform = `translateX(${dx * 0.35}px)`;
+      // Light drag feedback — 25% movement
+      slide.style.transform = `translateX(${dx * 0.25}px)`;
     }
   }, { passive: false });
 
   overlay.addEventListener('touchend', e => {
     if (!swipeActive) return;
     swipeActive = false;
-
     const dx = e.changedTouches[0].clientX - swipeTouchStartX;
     const dy = e.changedTouches[0].clientY - swipeTouchStartY;
     const now = Date.now();
 
-    // Snap back smoothly
-    slide.style.transition = 'transform .2s ease, opacity .15s ease';
+    // Reset transform instantly
+    slide.style.transition = 'none';
     slide.style.transform = 'translateX(0)';
 
-    if (now - swipeLastTime < 280) return;
+    // Debounce 150ms — faster than before
+    if (now - swipeLastTime < 150) return;
 
     const isHorizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
-    const isFlick = Math.abs(dx) > 40; // slightly higher threshold for accuracy
+    const isFlick = Math.abs(dx) > 30; // lower threshold = easier swipe
 
     if (isHorizontal && isFlick) {
       swipeLastTime = now;
-      // Flash to confirm navigation
-      slide.style.opacity = '0.4';
-      setTimeout(() => {
-        presNavCurrent(dx < 0 ? 1 : -1);
-        slide.style.opacity = '1';
-      }, 100);
+      presNavCurrent(dx < 0 ? 1 : -1); // INSTANT — no setTimeout delay
     }
   }, { passive: true });
 
   overlay.addEventListener('touchcancel', () => {
     swipeActive = false;
     const slide = document.getElementById('pres-slide');
-    slide.style.transition = 'transform .2s ease';
+    slide.style.transition = 'none';
     slide.style.transform = 'translateX(0)';
   }, { passive: true });
 }
