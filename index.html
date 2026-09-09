@@ -2682,13 +2682,13 @@ function importData(input) {
       try {
         data = JSON.parse(e.target.result);
       } catch(parseErr) {
-        showAlert('backup-alert', '❌ File could not be read. Make sure it is a valid JSON file.', 'error');
+        showAlert('backup-alert', '❌ Invalid JSON file. Make sure it is a MedPromo backup file.', 'error');
         input.value = '';
         return;
       }
 
       if (!data.products || !Array.isArray(data.products)) {
-        showAlert('backup-alert', '❌ This does not look like a valid MedPromo backup.', 'error');
+        showAlert('backup-alert', '❌ Not a valid MedPromo backup file.', 'error');
         input.value = '';
         return;
       }
@@ -2698,57 +2698,114 @@ function importData(input) {
       const total = incoming.length;
 
       const doMerge = confirm(
-        `Found ${total} products and ${incomingSets.length} promo sets.\n\nTap OK to MERGE (keeps your existing data)\nTap Cancel to go back.`
+        `Found ${total} products and ${incomingSets.length} promo sets.\n\nTap OK to MERGE (keeps your existing data + adds new)\nTap Cancel to go back.`
       );
       if (!doMerge) { input.value = ''; return; }
 
-      showAlert('backup-alert', `⏳ Importing ${total} products in small batches — please wait...`, 'success');
+      showAlert('backup-alert', `⏳ Importing ${total} products — please wait...`, 'success');
 
-      // Process in small chunks of 5 to avoid memory crash on old devices
-      const CHUNK = 5;
+      // ── WAIT for DB to be ready ──
+      if (!dbInstance) {
+        showAlert('backup-alert', '⏳ Waiting for database...', 'success');
+        await new Promise(r => setTimeout(r, 500));
+        // Try init again
+        try { await initStorage(); } catch(e) {}
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // ── MERGE with duplicate check ──
+      const existingIds = new Set(products.map(p => String(p.id)));
+      const existingNames = new Set(products.map(p => (p.name||'').toLowerCase().trim()));
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      const CHUNK = 3; // smaller chunks for Tab S2
       const baseTime = Date.now();
 
       for (let i = 0; i < incoming.length; i += CHUNK) {
         const chunk = incoming.slice(i, i + CHUNK);
         chunk.forEach((p, j) => {
-          products.push({ ...p, id: baseTime + i + j + Math.random() });
+          const pid = String(p.id || '');
+          const pname = (p.name||'').toLowerCase().trim();
+          // Skip if same ID or same name already exists
+          if (existingIds.has(pid) || existingNames.has(pname)) {
+            skippedCount++;
+            return;
+          }
+          const newP = { ...p, id: baseTime + i + j + Math.random() };
+          products.push(newP);
+          existingIds.add(String(newP.id));
+          existingNames.add(pname);
+          addedCount++;
         });
-        // Yield to browser every chunk so it doesn't freeze
-        await new Promise(r => setTimeout(r, 30));
-        // Update progress
+        // Yield to browser
+        await new Promise(r => setTimeout(r, 40));
         const done = Math.min(i + CHUNK, total);
-        showAlert('backup-alert', `⏳ Importing... ${done}/${total} products`, 'success');
+        showAlert('backup-alert', `⏳ Processing... ${done}/${total}`, 'success');
       }
 
-      // Add promosets
+      // Merge promo sets (no duplicates)
+      const existingSetIds = new Set(promoSets.map(s => String(s.id)));
+      let setsAdded = 0;
       incomingSets.forEach((s, j) => {
-        promoSets.push({ ...s, id: Date.now() + j + Math.random() });
+        if (!existingSetIds.has(String(s.id))) {
+          promoSets.push({ ...s, id: Date.now() + j + Math.random() });
+          setsAdded++;
+        }
       });
 
-      // Save to IndexedDB (async, fire and forget)
-      showAlert('backup-alert', '⏳ Saving to device...', 'success');
-      await new Promise(r => setTimeout(r, 100));
+      // ── SAVE TO INDEXEDDB ──
+      showAlert('backup-alert', '⏳ Saving to device storage...', 'success');
+      await new Promise(r => setTimeout(r, 200));
 
-      if (dbInstance) {
-        await idbSet('medpromo_products', products).catch(e => console.error(e));
-        await idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
+      let saveOk = false;
+      try {
+        if (dbInstance) {
+          await idbSet('medpromo_products', products);
+          await idbSet('medpromo_sets', promoSets);
+          saveOk = true;
+        } else {
+          // Try to init DB and save
+          await initStorage();
+          await new Promise(r => setTimeout(r, 300));
+          await idbSet('medpromo_products', products);
+          await idbSet('medpromo_sets', promoSets);
+          saveOk = true;
+        }
+      } catch(saveErr) {
+        console.error('Save error:', saveErr);
+        saveOk = false;
       }
 
-      // Update UI stats only (don't render full product grid — too heavy)
+      // Update UI
       updateStats();
       updateSidebarSpecialties();
       updateSelectOptions();
+      // Reset pagination so products tab shows fresh
+      productPage = 0;
+      filteredProductsCache = [];
 
-      showAlert('backup-alert',
-        `✅ Import complete! ${total} products added. Go to Products tab to view them.`,
-        'success');
+      if (saveOk) {
+        showAlert('backup-alert',
+          `✅ Import complete!\n${addedCount} products added, ${skippedCount} skipped (duplicates).\n${setsAdded} promo sets added.\nGo to Products tab to view.`,
+          'success');
+      } else {
+        showAlert('backup-alert',
+          `⚠️ Products loaded but could not save to device storage. Please try again or restart the app.`,
+          'error');
+      }
 
     } catch (err) {
+      console.error('Import error:', err);
       showAlert('backup-alert', '❌ Import failed: ' + err.message, 'error');
     }
     input.value = '';
   };
-  reader.readAsText(file);
+  reader.onerror = () => {
+    showAlert('backup-alert', '❌ Could not read the file. Please try again.', 'error');
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ── SAMPLE DATA ──
