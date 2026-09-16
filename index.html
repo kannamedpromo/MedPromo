@@ -1132,6 +1132,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'medpromo_store';
 let dbInstance = null;
 
+// ── BULLETPROOF DB OPEN — auto-reconnects if closed ──
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1141,36 +1142,89 @@ function openDB() {
         db.createObjectStore(STORE_NAME);
       }
     };
-    request.onsuccess = (e) => resolve(e.target.result);
+    request.onsuccess = (e) => {
+      const db = e.target.result;
+      // Handle connection being closed unexpectedly
+      db.onversionchange = () => { db.close(); dbInstance = null; };
+      db.onclose = () => { dbInstance = null; };
+      resolve(db);
+    };
     request.onerror = (e) => reject(e.target.error);
+    request.onblocked = () => reject(new Error('DB blocked'));
   });
 }
 
-function idbGet(key) {
-  return new Promise((resolve, reject) => {
-    const tx = dbInstance.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+// ── GET DB — reconnects if needed ──
+async function getDB() {
+  if (!dbInstance) {
+    dbInstance = await openDB();
+  }
+  return dbInstance;
 }
 
-function idbSet(key, value) {
-  return new Promise((resolve, reject) => {
-    const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
-    const req = tx.objectStore(STORE_NAME).put(value, key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+// ── idbGet — with auto-reconnect ──
+async function idbGet(key) {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch(e) {
+    // Fallback to localStorage
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : null;
+    } catch(le) { return null; }
+  }
+}
+
+// ── idbSet — waits for transaction COMPLETE, with localStorage fallback ──
+async function idbSet(key, value) {
+  // Always save to localStorage as backup
+  try {
+    localStorage.setItem(key + '_backup', JSON.stringify(value));
+  } catch(le) {}
+
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const req = tx.objectStore(STORE_NAME).put(value, key);
+      // Wait for TRANSACTION complete — not just request success
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(new Error('Transaction aborted'));
+      req.onerror = () => reject(req.error);
+    });
+  } catch(e) {
+    // Fallback: save to localStorage directly
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return Promise.resolve();
+    } catch(le) {
+      return Promise.reject(le);
+    }
+  }
 }
 
 async function initStorage() {
   try {
     dbInstance = await openDB();
-    const savedProducts = await idbGet('medpromo_products');
-    const savedSets = await idbGet('medpromo_sets');
+    let savedProducts = await idbGet('medpromo_products');
+    let savedSets = await idbGet('medpromo_sets');
 
-    // One-time migration from older localStorage-based version, if present
+    // Check localStorage backup if IndexedDB empty
+    if (!savedProducts || savedProducts.length === 0) {
+      const lsBackup = localStorage.getItem('medpromo_products_backup');
+      if (lsBackup) {
+        try { savedProducts = JSON.parse(lsBackup); } catch(e) {}
+      }
+    }
+
+    // One-time migration from older localStorage version
     if (!savedProducts && !savedSets) {
       const oldProducts = localStorage.getItem('medpromo_products');
       const oldSets = localStorage.getItem('medpromo_sets');
@@ -1187,9 +1241,16 @@ async function initStorage() {
       promoSets = savedSets || [];
     }
   } catch (err) {
-    console.error('IndexedDB init failed, falling back to localStorage:', err);
-    products = JSON.parse(localStorage.getItem('medpromo_products') || '[]');
-    promoSets = JSON.parse(localStorage.getItem('medpromo_sets') || '[]');
+    console.error('IndexedDB init failed, using localStorage backup:', err);
+    // Try localStorage backup first
+    try {
+      const backup = localStorage.getItem('medpromo_products_backup');
+      products = backup ? JSON.parse(backup) : JSON.parse(localStorage.getItem('medpromo_products') || '[]');
+    } catch(e) { products = []; }
+    try {
+      const backup = localStorage.getItem('medpromo_sets_backup');
+      promoSets = backup ? JSON.parse(backup) : JSON.parse(localStorage.getItem('medpromo_sets') || '[]');
+    } catch(e) { promoSets = []; }
   }
   updateStats();
   updateSidebarSpecialties();
