@@ -1423,11 +1423,17 @@ function save() {
   updateStats();
   updateSidebarSpecialties();
   updateSelectOptions();
-  // Fire-and-forget async writes to IndexedDB (large capacity for images)
-  if (dbInstance) {
-    idbSet('medpromo_products', products).catch(err => console.error('Save products failed:', err));
-    idbSet('medpromo_sets', promoSets).catch(err => console.error('Save sets failed:', err));
-  }
+  // Save products WITHOUT images to reduce size — images stored separately
+  const productsNoImg = products.map(p => {
+    const {images, image, ...rest} = p;
+    return rest;
+  });
+  idbSet('medpromo_products', productsNoImg).catch(err => console.error('Save products failed:', err));
+  idbSet('medpromo_sets', promoSets).catch(err => console.error('Save sets failed:', err));
+  // Save full products (with images) to separate key
+  idbSet('medpromo_products_full', products).catch(err => console.error('Save full failed:', err));
+  // Always keep localStorage backup (no images — lightweight)
+  try { localStorage.setItem('medpromo_products_backup', JSON.stringify(productsNoImg)); } catch(e) {}
 }
 
 // ── PAGE NAV ──
@@ -1857,20 +1863,38 @@ function filterPoolBySpecialty() {
   renderPool();
 }
 
+let poolPage = 0;
+const POOL_PAGE_SIZE = 30;
+
 function renderPool() {
   const spec   = document.getElementById('s-specialty').value;
   const search = document.getElementById('pool-search').value.toLowerCase();
   let filtered = products.filter(p => {
     const matchSpec = !spec || p.specialty === spec;
-    const matchSearch = !search || getProductBrandRows(p).some(r => r.brand.toLowerCase().includes(search));
+    const matchSearch = !search || (p.name||'').toLowerCase().includes(search) ||
+      getProductBrandRows(p).some(r => r.brand.toLowerCase().includes(search));
     return matchSpec && matchSearch && !currentSetProducts.includes(p.id);
   });
+
   const pool = document.getElementById('product-pool');
   if (!filtered.length) {
     pool.innerHTML = '<div style="color:var(--text2);font-size:.85rem;text-align:center;padding:20px">No products available</div>';
     return;
   }
-  pool.innerHTML = filtered.map(p => `
+
+  // Paginate — show only POOL_PAGE_SIZE products at a time
+  const totalPages = Math.ceil(filtered.length / POOL_PAGE_SIZE);
+  if (poolPage >= totalPages) poolPage = 0;
+  const pageProds = filtered.slice(poolPage * POOL_PAGE_SIZE, (poolPage + 1) * POOL_PAGE_SIZE);
+
+  const navHtml = totalPages > 1 ? `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:.8rem">
+      <button onclick="poolPage=Math.max(0,poolPage-1);renderPool()" style="padding:3px 10px;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer">◀</button>
+      <span style="color:var(--text2)">${filtered.length} products — Page ${poolPage+1}/${totalPages}</span>
+      <button onclick="poolPage=Math.min(${totalPages-1},poolPage+1);renderPool()" style="padding:3px 10px;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer">▶</button>
+    </div>` : `<div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">${filtered.length} products</div>`;
+
+  pool.innerHTML = navHtml + pageProds.map(p => `
     <div class="mini-product" onclick="addToSet(${p.id})">
       <span><strong>${p.name}</strong> <span style="color:var(--text2);font-size:.78rem">${p.specialty}</span></span>
       <span class="mini-add">+</span>
@@ -1929,20 +1953,20 @@ function saveSet() {
   };
 
   if (editingSetId !== null) {
-    // Update existing set
     const idx = promoSets.findIndex(s => s.id === editingSetId);
     if (idx !== -1) promoSets[idx] = { ...promoSets[idx], ...setData };
-    save();
-    renderSets();
+    // Save quietly — no full re-render
+    idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
     cancelSetEdit();
-    showAlert('set-alert', `Set "${name}" updated!`, 'success');
+    updateStats();
+    showAlert('set-alert', `✅ Set "${name}" updated! Go to Promo Sets to view.`, 'success');
   } else {
-    // Create new set
     promoSets.push({ id: Date.now(), ...setData });
-    save();
-    renderSets();
+    // Save quietly — no full re-render
+    idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
     clearSetForm();
-    showAlert('set-alert', `Set "${name}" saved!`, 'success');
+    updateStats();
+    showAlert('set-alert', `✅ Set "${name}" saved! Go to Promo Sets to view.`, 'success');
   }
 }
 
