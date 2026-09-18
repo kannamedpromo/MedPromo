@@ -2738,20 +2738,17 @@ function importData(input) {
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
-      // Parse JSON
       let data;
       try {
         data = JSON.parse(e.target.result);
       } catch(parseErr) {
-        showAlert('backup-alert', '❌ Invalid JSON file. Make sure it is a MedPromo backup file.', 'error');
-        input.value = '';
-        return;
+        showAlert('backup-alert', '❌ Invalid file. Use a MedPromo backup JSON file.', 'error');
+        input.value = ''; return;
       }
 
       if (!data.products || !Array.isArray(data.products)) {
         showAlert('backup-alert', '❌ Not a valid MedPromo backup file.', 'error');
-        input.value = '';
-        return;
+        input.value = ''; return;
       }
 
       const incoming = data.products;
@@ -2759,111 +2756,109 @@ function importData(input) {
       const total = incoming.length;
 
       const doMerge = confirm(
-        `Found ${total} products and ${incomingSets.length} promo sets.\n\nTap OK to MERGE (keeps your existing data + adds new)\nTap Cancel to go back.`
+        `Found ${total} products.\n\nTap OK to MERGE with existing products.\nDuplicates will be skipped automatically.`
       );
       if (!doMerge) { input.value = ''; return; }
 
-      showAlert('backup-alert', `⏳ Importing ${total} products — please wait...`, 'success');
+      showAlert('backup-alert', `⏳ Starting import of ${total} products...`, 'success');
+      await new Promise(r => setTimeout(r, 300));
 
-      // ── WAIT for DB to be ready ──
-      if (!dbInstance) {
-        showAlert('backup-alert', '⏳ Waiting for database...', 'success');
-        await new Promise(r => setTimeout(r, 500));
-        // Try init again
-        try { await initStorage(); } catch(e) {}
-        await new Promise(r => setTimeout(r, 500));
-      }
-
-      // ── MERGE with duplicate check ──
+      // Build lookup sets for duplicate check
       const existingIds = new Set(products.map(p => String(p.id)));
       const existingNames = new Set(products.map(p => (p.name||'').toLowerCase().trim()));
       let addedCount = 0;
       let skippedCount = 0;
 
-      const CHUNK = 3; // smaller chunks for Tab S2
-      const baseTime = Date.now();
+      // Process ONE product at a time with 50ms gap — prevents Tab S2 crash
+      for (let i = 0; i < incoming.length; i++) {
+        const p = incoming[i];
+        const pid = String(p.id || '');
+        const pname = (p.name||'').toLowerCase().trim();
 
-      for (let i = 0; i < incoming.length; i += CHUNK) {
-        const chunk = incoming.slice(i, i + CHUNK);
-        chunk.forEach((p, j) => {
-          const pid = String(p.id || '');
-          const pname = (p.name||'').toLowerCase().trim();
-          // Skip if same ID or same name already exists
-          if (existingIds.has(pid) || existingNames.has(pname)) {
-            skippedCount++;
-            return;
-          }
-          const newP = { ...p, id: baseTime + i + j + Math.random() };
+        if (!existingIds.has(pid) && !existingNames.has(pname)) {
+          const newP = { ...p, id: Date.now() + i + Math.random() };
+          // Remove images to save memory — Tab S2 has limited RAM
+          if (!newP.images) newP.images = [];
           products.push(newP);
           existingIds.add(String(newP.id));
           existingNames.add(pname);
           addedCount++;
-        });
-        // Yield to browser
-        await new Promise(r => setTimeout(r, 40));
-        const done = Math.min(i + CHUNK, total);
-        showAlert('backup-alert', `⏳ Processing... ${done}/${total}`, 'success');
+        } else {
+          skippedCount++;
+        }
+
+        // Update progress every 5 products
+        if (i % 5 === 0) {
+          showAlert('backup-alert', `⏳ ${i+1}/${total} — Added:${addedCount} Skipped:${skippedCount}`, 'success');
+          await new Promise(r => setTimeout(r, 50)); // breathe
+        }
       }
 
-      // Merge promo sets (no duplicates)
+      // Merge promo sets
       const existingSetIds = new Set(promoSets.map(s => String(s.id)));
       let setsAdded = 0;
       incomingSets.forEach((s, j) => {
         if (!existingSetIds.has(String(s.id))) {
-          promoSets.push({ ...s, id: Date.now() + j + Math.random() });
+          promoSets.push({ ...s, id: Date.now() + j });
           setsAdded++;
         }
       });
 
-      // ── SAVE TO INDEXEDDB ──
+      // Save to IndexedDB + localStorage backup
       showAlert('backup-alert', '⏳ Saving to device storage...', 'success');
       await new Promise(r => setTimeout(r, 200));
 
       let saveOk = false;
       try {
-        if (dbInstance) {
-          await idbSet('medpromo_products', products);
-          await idbSet('medpromo_sets', promoSets);
-          saveOk = true;
-        } else {
-          // Try to init DB and save
-          await initStorage();
-          await new Promise(r => setTimeout(r, 300));
-          await idbSet('medpromo_products', products);
-          await idbSet('medpromo_sets', promoSets);
-          saveOk = true;
-        }
+        const db = await getDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put(products, 'medpromo_products');
+          tx.objectStore(STORE_NAME).put(promoSets, 'medpromo_sets');
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(new Error('aborted'));
+        });
+        saveOk = true;
+        // Also save localStorage backup
+        try {
+          localStorage.setItem('medpromo_products_backup', JSON.stringify(products));
+        } catch(e) {}
       } catch(saveErr) {
         console.error('Save error:', saveErr);
-        saveOk = false;
+        // Try localStorage as fallback
+        try {
+          localStorage.setItem('medpromo_products_backup', JSON.stringify(products));
+          localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
+          saveOk = true;
+        } catch(le) { saveOk = false; }
       }
 
-      // Update UI
+      // Update UI — no full render, just stats
       updateStats();
       updateSidebarSpecialties();
       updateSelectOptions();
-      // Reset pagination so products tab shows fresh
       productPage = 0;
       filteredProductsCache = [];
 
       if (saveOk) {
         showAlert('backup-alert',
-          `✅ Import complete!\n${addedCount} products added, ${skippedCount} skipped (duplicates).\n${setsAdded} promo sets added.\nGo to Products tab to view.`,
+          `✅ Done! Added ${addedCount} products, skipped ${skippedCount} duplicates. ${setsAdded} promo sets added. Go to Products tab to view.`,
           'success');
       } else {
         showAlert('backup-alert',
-          `⚠️ Products loaded but could not save to device storage. Please try again or restart the app.`,
+          `⚠️ Imported ${addedCount} products but storage save failed. Please try again.`,
           'error');
       }
 
     } catch (err) {
       console.error('Import error:', err);
-      showAlert('backup-alert', '❌ Import failed: ' + err.message, 'error');
+      showAlert('backup-alert', '❌ Import failed: ' + (err.message||'Unknown error'), 'error');
     }
     input.value = '';
   };
   reader.onerror = () => {
-    showAlert('backup-alert', '❌ Could not read the file. Please try again.', 'error');
+    showAlert('backup-alert', '❌ Could not read file. Please try again.', 'error');
     input.value = '';
   };
   reader.readAsText(file, 'UTF-8');
