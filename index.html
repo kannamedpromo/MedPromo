@@ -1216,42 +1216,35 @@ async function initStorage() {
     let savedProducts = await idbGet('medpromo_products');
     let savedSets = await idbGet('medpromo_sets');
 
-    // Check localStorage backup if IndexedDB empty
+    // If IndexedDB empty — load from localStorage backup
     if (!savedProducts || savedProducts.length === 0) {
-      const lsBackup = localStorage.getItem('medpromo_products_backup');
-      if (lsBackup) {
-        try { savedProducts = JSON.parse(lsBackup); } catch(e) {}
+      const backup = localStorage.getItem('medpromo_products_backup');
+      if (backup) {
+        try { savedProducts = JSON.parse(backup); } catch(e) {}
+      }
+    }
+    if (!savedSets || savedSets.length === 0) {
+      const backup = localStorage.getItem('medpromo_sets_backup');
+      if (backup) {
+        try { savedSets = JSON.parse(backup); } catch(e) {}
       }
     }
 
-    // One-time migration from older localStorage version
-    if (!savedProducts && !savedSets) {
-      const oldProducts = localStorage.getItem('medpromo_products');
-      const oldSets = localStorage.getItem('medpromo_sets');
-      if (oldProducts || oldSets) {
-        products = JSON.parse(oldProducts || '[]');
-        promoSets = JSON.parse(oldSets || '[]');
-        await idbSet('medpromo_products', products);
-        await idbSet('medpromo_sets', promoSets);
-        localStorage.removeItem('medpromo_products');
-        localStorage.removeItem('medpromo_sets');
-      }
-    } else {
-      products = savedProducts || [];
-      promoSets = savedSets || [];
-    }
-  } catch (err) {
-    console.error('IndexedDB init failed, using localStorage backup:', err);
-    // Try localStorage backup first
+    products = savedProducts || [];
+    promoSets = savedSets || [];
+
+  } catch(err) {
+    console.error('IndexedDB failed, using localStorage:', err);
     try {
       const backup = localStorage.getItem('medpromo_products_backup');
-      products = backup ? JSON.parse(backup) : JSON.parse(localStorage.getItem('medpromo_products') || '[]');
+      products = backup ? JSON.parse(backup) : [];
     } catch(e) { products = []; }
     try {
       const backup = localStorage.getItem('medpromo_sets_backup');
-      promoSets = backup ? JSON.parse(backup) : JSON.parse(localStorage.getItem('medpromo_sets') || '[]');
+      promoSets = backup ? JSON.parse(backup) : [];
     } catch(e) { promoSets = []; }
   }
+
   updateStats();
   updateSidebarSpecialties();
   updateSelectOptions();
@@ -1540,7 +1533,6 @@ function updateSelectOptions() {
 function addProduct() {
   const specialty = document.getElementById('p-specialty').value.trim();
 
-  // Build clean brandRows — each with its own mrpRows
   const brandRows = currentBrandRows
     .map(b => {
       const mrpRows = (b.mrpRows || [])
@@ -1558,7 +1550,7 @@ function addProduct() {
     .filter(b => b.brand !== '');
 
   if (!brandRows.length || !specialty) {
-    showAlert('product-alert', 'At least one Brand Name and Specialty are required.', 'error');
+    showAlert('product-alert', 'Brand Name and Specialty are required.', 'error');
     return;
   }
 
@@ -1579,27 +1571,37 @@ function addProduct() {
   if (editingProductId !== null) {
     const idx = products.findIndex(p => p.id === editingProductId);
     if (idx !== -1) products[idx] = { ...products[idx], ...data };
-    // Save quietly — no full re-render to prevent crash on Tab S2
-    if (dbInstance) {
-      idbSet('medpromo_products', products).catch(e => console.error(e));
-    }
-    clearProductForm();
-    updateStats();
-    updateSidebarSpecialties();
-    updateSelectOptions();
-    showAlert('product-alert', `✅ "${data.name}" updated! Go to Products tab to view.`, 'success');
+    editingProductId = null;
   } else {
-    const newProduct = { id: Date.now() + Math.random(), ...data };
+    const newProduct = { id: Date.now() + Math.floor(Math.random()*1000), ...data };
     products.push(newProduct);
-    // Save quietly — no full re-render to prevent crash on Tab S2
-    if (dbInstance) {
-      idbSet('medpromo_products', products).catch(e => console.error(e));
-    }
-    clearProductForm();
-    updateStats();
-    updateSidebarSpecialties();
-    updateSelectOptions();
-    showAlert('product-alert', `✅ "${data.name}" saved successfully! Go to Products tab to view it.`, 'success');
+  }
+
+  // ── SAVE — always, even if dbInstance is null ──
+  saveProductsNow();
+  clearProductForm();
+  updateStats();
+  updateSidebarSpecialties();
+  updateSelectOptions();
+  showAlert('product-alert', `✅ "${data.name}" saved! Go to Products tab.`, 'success');
+}
+
+// Dedicated save function — always saves, reconnects DB if needed
+async function saveProductsNow() {
+  // Strip images for lightweight save
+  const slim = products.map(({images, image, ...rest}) => rest);
+  // 1. localStorage backup first (instant, always works)
+  try { localStorage.setItem('medpromo_products_backup', JSON.stringify(slim)); } catch(e) {}
+  // 2. IndexedDB save
+  try {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(slim, 'medpromo_products');
+    tx.objectStore(STORE_NAME).put(promoSets, 'medpromo_sets');
+    tx.oncomplete = () => console.log('Saved OK');
+    tx.onerror = (e) => console.error('Save failed:', e);
+  } catch(e) {
+    console.error('DB save failed, localStorage backup used:', e);
   }
 }
 
@@ -1955,19 +1957,16 @@ function saveSet() {
   if (editingSetId !== null) {
     const idx = promoSets.findIndex(s => s.id === editingSetId);
     if (idx !== -1) promoSets[idx] = { ...promoSets[idx], ...setData };
-    // Save quietly — no full re-render
-    idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
-    cancelSetEdit();
-    updateStats();
-    showAlert('set-alert', `✅ Set "${name}" updated! Go to Promo Sets to view.`, 'success');
+    editingSetId = null;
   } else {
-    promoSets.push({ id: Date.now(), ...setData });
-    // Save quietly — no full re-render
-    idbSet('medpromo_sets', promoSets).catch(e => console.error(e));
-    clearSetForm();
-    updateStats();
-    showAlert('set-alert', `✅ Set "${name}" saved! Go to Promo Sets to view.`, 'success');
+    promoSets.push({ id: Date.now() + Math.floor(Math.random()*1000), ...setData });
   }
+
+  // Save always — uses localStorage + IndexedDB
+  saveProductsNow();
+  clearSetForm();
+  updateStats();
+  showAlert('set-alert', `✅ Set "${name}" saved! Go to Promo Sets tab to view.`, 'success');
 }
 
 function deleteSet(id) {
