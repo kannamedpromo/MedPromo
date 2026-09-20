@@ -1416,17 +1416,7 @@ function save() {
   updateStats();
   updateSidebarSpecialties();
   updateSelectOptions();
-  // Save products WITHOUT images to reduce size — images stored separately
-  const productsNoImg = products.map(p => {
-    const {images, image, ...rest} = p;
-    return rest;
-  });
-  idbSet('medpromo_products', productsNoImg).catch(err => console.error('Save products failed:', err));
-  idbSet('medpromo_sets', promoSets).catch(err => console.error('Save sets failed:', err));
-  // Save full products (with images) to separate key
-  idbSet('medpromo_products_full', products).catch(err => console.error('Save full failed:', err));
-  // Always keep localStorage backup (no images — lightweight)
-  try { localStorage.setItem('medpromo_products_backup', JSON.stringify(productsNoImg)); } catch(e) {}
+  saveProductsNow();
 }
 
 // ── PAGE NAV ──
@@ -1586,22 +1576,24 @@ function addProduct() {
   showAlert('product-alert', `✅ "${data.name}" saved! Go to Products tab.`, 'success');
 }
 
-// Dedicated save function — always saves, reconnects DB if needed
+// Dedicated save function — always saves WITH images
 async function saveProductsNow() {
-  // Strip images for lightweight save
-  const slim = products.map(({images, image, ...rest}) => rest);
-  // 1. localStorage backup first (instant, always works)
-  try { localStorage.setItem('medpromo_products_backup', JSON.stringify(slim)); } catch(e) {}
-  // 2. IndexedDB save
+  // 1. localStorage backup — slim version without images (localStorage size limit)
+  try {
+    const slim = products.map(({images, image, ...rest}) => rest);
+    localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
+    localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
+  } catch(e) {}
+  // 2. IndexedDB — save FULL products WITH images
   try {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(slim, 'medpromo_products');
+    tx.objectStore(STORE_NAME).put(products, 'medpromo_products');
     tx.objectStore(STORE_NAME).put(promoSets, 'medpromo_sets');
-    tx.oncomplete = () => console.log('Saved OK');
+    tx.oncomplete = () => console.log('Saved OK with images');
     tx.onerror = (e) => console.error('Save failed:', e);
   } catch(e) {
-    console.error('DB save failed, localStorage backup used:', e);
+    console.error('DB save failed:', e);
   }
 }
 
