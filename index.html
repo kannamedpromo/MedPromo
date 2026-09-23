@@ -897,10 +897,23 @@
         <div class="form-grid">
           <div class="form-group full">
             <label>Product Images (up to 3)</label>
-            <div class="img-upload-box" id="img-upload-box" onclick="document.getElementById('p-image-input').click()">
-              <input type="file" id="p-image-input" accept="image/*" multiple style="display:none" onchange="previewProductImages(this)">
-              <span id="img-upload-text">📷 Click to upload product images (max 3)</span>
+            <div class="img-upload-box" id="img-upload-box">
+              <!-- Direct label wrapping input — works on all Android browsers -->
+              <label for="p-image-input" style="cursor:pointer;display:block;width:100%;text-align:center;padding:8px 0">
+                <input type="file" id="p-image-input" accept="image/*" multiple
+                  style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden"
+                  onchange="previewProductImages(this)">
+                <span id="img-upload-text">📷 Tap here to upload product images (max 3)</span>
+              </label>
               <div id="img-preview-row" class="img-preview-row"></div>
+            </div>
+            <!-- Separate camera button for direct camera access on Samsung -->
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <label for="p-image-input" style="flex:1">
+                <div class="btn btn-secondary btn-sm" style="width:100%;text-align:center;cursor:pointer">
+                  📷 Gallery / Camera
+                </div>
+              </label>
             </div>
           </div>
           <div class="form-group full">
