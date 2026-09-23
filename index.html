@@ -1216,22 +1216,35 @@ async function initStorage() {
     let savedProducts = await idbGet('medpromo_products');
     let savedSets = await idbGet('medpromo_sets');
 
-    // If IndexedDB empty — load from localStorage backup
+    // Fallback to localStorage if IndexedDB empty
     if (!savedProducts || savedProducts.length === 0) {
       const backup = localStorage.getItem('medpromo_products_backup');
-      if (backup) {
-        try { savedProducts = JSON.parse(backup); } catch(e) {}
-      }
+      if (backup) try { savedProducts = JSON.parse(backup); } catch(e) {}
     }
     if (!savedSets || savedSets.length === 0) {
       const backup = localStorage.getItem('medpromo_sets_backup');
-      if (backup) {
-        try { savedSets = JSON.parse(backup); } catch(e) {}
-      }
+      if (backup) try { savedSets = JSON.parse(backup); } catch(e) {}
     }
 
     products = savedProducts || [];
     promoSets = savedSets || [];
+
+    // Load images separately per product
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (!p.images || p.images.length === 0) {
+        try {
+          const imgs = await idbGet('medpromo_images_' + p.id);
+          if (imgs && imgs.length) {
+            p.images = imgs;
+          } else {
+            p.images = [];
+          }
+        } catch(e) {
+          p.images = [];
+        }
+      }
+    }
 
   } catch(err) {
     console.error('IndexedDB failed, using localStorage:', err);
@@ -1576,24 +1589,45 @@ function addProduct() {
   showAlert('product-alert', `✅ "${data.name}" saved! Go to Products tab.`, 'success');
 }
 
-// Dedicated save function — always saves WITH images
+// Save products WITH images — images stored separately per product to avoid memory crash
 async function saveProductsNow() {
-  // 1. localStorage backup — slim version without images (localStorage size limit)
-  try {
-    const slim = products.map(({images, image, ...rest}) => rest);
-    localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
-    localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
-  } catch(e) {}
-  // 2. IndexedDB — save FULL products WITH images
   try {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(products, 'medpromo_products');
-    tx.objectStore(STORE_NAME).put(promoSets, 'medpromo_sets');
-    tx.oncomplete = () => console.log('Saved OK with images');
+    const store = tx.objectStore(STORE_NAME);
+
+    // Save slim products (no images) to main key
+    const slim = products.map(({images, image, ...rest}) => rest);
+    store.put(slim, 'medpromo_products');
+
+    // Save each product's images separately by ID
+    products.forEach(p => {
+      const imgs = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
+      if (imgs.length) {
+        store.put(imgs, 'medpromo_images_' + p.id);
+      }
+    });
+
+    // Save promo sets
+    store.put(promoSets, 'medpromo_sets');
+
+    tx.oncomplete = () => console.log('Saved OK — images stored separately');
     tx.onerror = (e) => console.error('Save failed:', e);
+
+    // localStorage backup — slim only (no images, stays small)
+    try {
+      localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
+      localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
+    } catch(e) {}
+
   } catch(e) {
     console.error('DB save failed:', e);
+    // localStorage fallback
+    try {
+      const slim = products.map(({images, image, ...rest}) => rest);
+      localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
+      localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
+    } catch(le) {}
   }
 }
 
