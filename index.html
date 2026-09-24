@@ -1288,25 +1288,27 @@ function previewProductImages(input) {
 
   const remainingSlots = MAX_PRODUCT_IMAGES - currentProductImages.length;
   if (remainingSlots <= 0) {
-    alert(`Maximum ${MAX_PRODUCT_IMAGES} images per product.`);
+    alert('Maximum ' + MAX_PRODUCT_IMAGES + ' images per product.');
     input.value = '';
     return;
   }
 
   const toProcess = files.slice(0, remainingSlots);
+  input.value = '';
 
-  // Process images one at a time — compress each before storing
-  let processed = 0;
-  toProcess.forEach(file => {
+  // Process ONE image at a time with delay — prevents Tab S2 crash
+  function processNext(idx) {
+    if (idx >= toProcess.length) return;
+    const file = toProcess[idx];
+
     const reader = new FileReader();
-    reader.onload = e => {
-      // Compress image using canvas — reduces from 3MB to ~100KB
+    reader.onload = function(e) {
       const img = new Image();
-      img.onload = () => {
+      img.onload = function() {
         try {
           const canvas = document.createElement('canvas');
-          // Max 800px width/height — enough for presentations
-          const MAX_DIM = 800;
+          // Max 600px — smaller = less memory = no crash
+          const MAX_DIM = 600;
           let w = img.width;
           let h = img.height;
           if (w > h) {
@@ -1318,25 +1320,32 @@ function previewProductImages(input) {
           canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          // Compress to JPEG quality 0.75 — good quality, small size
-          const compressed = canvas.toDataURL('image/jpeg', 0.75);
+          // Quality 0.5 — still looks good on screen, very small file
+          const compressed = canvas.toDataURL('image/jpeg', 0.5);
+          canvas.width = 0; canvas.height = 0; // free memory
+          img.src = ''; // free memory
           currentProductImages.push(compressed);
           renderImagePreviewRow();
+          // Process next image after 200ms gap
+          setTimeout(function() { processNext(idx + 1); }, 200);
         } catch(ce) {
-          // If canvas fails — use original
-          currentProductImages.push(e.target.result);
-          renderImagePreviewRow();
+          img.src = '';
+          // Skip this image if canvas fails
+          setTimeout(function() { processNext(idx + 1); }, 200);
         }
       };
-      img.onerror = () => {
-        currentProductImages.push(e.target.result);
-        renderImagePreviewRow();
+      img.onerror = function() {
+        setTimeout(function() { processNext(idx + 1); }, 200);
       };
       img.src = e.target.result;
     };
+    reader.onerror = function() {
+      setTimeout(function() { processNext(idx + 1); }, 200);
+    };
     reader.readAsDataURL(file);
-  });
-  input.value = '';
+  }
+
+  processNext(0);
 }
 
 function removePreviewImage(index) {
