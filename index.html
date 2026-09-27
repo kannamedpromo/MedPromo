@@ -2690,33 +2690,13 @@ function showAlert(id, msg, type) {
 }
 
 // ── BACKUP / TRANSFER ──
-function exportData() {
-  // Full export — split into chunks to avoid memory crash
-  try {
-    const payload = {
-      app: 'MedPromo',
-      exportedAt: new Date().toISOString(),
-      products,
-      promoSets,
-    };
-    const json = JSON.stringify(payload);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const dateStr = new Date().toISOString().slice(0,10);
-    a.href = url;
-    a.download = `medpromo-backup-${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showAlert('backup-alert', 'Full backup downloaded! If it crashes, use Text-Only Export instead.', 'success');
-  } catch(e) {
-    showAlert('backup-alert', 'Full export failed — please use Text-Only Export below.', 'error');
-  }
+// Strip images from product for export
+function stripImages(p) {
+  const {images, image, ...rest} = p;
+  return rest;
 }
 
-// Export ONE specialty with images — small file, never crashes
+// Export ONE specialty — text only, small file, never crashes
 function exportBySpecialty() {
   const spec = document.getElementById('export-specialty-select').value;
   if (!spec) { showAlert('backup-alert', 'Please select a specialty first.', 'error'); return; }
@@ -2726,9 +2706,10 @@ function exportBySpecialty() {
     const payload = {
       app: 'MedPromo',
       exportedAt: new Date().toISOString(),
+      textOnly: false,
       specialty: spec,
       productCount: specProducts.length,
-      products: specProducts,
+      products: specProducts, // WITH images — specialty files are small enough
       promoSets: promoSets.filter(s => s.specialty === spec ||
         s.products.some(id => specProducts.find(p => p.id === id))),
     };
@@ -2738,32 +2719,22 @@ function exportBySpecialty() {
     const dateStr = new Date().toISOString().slice(0,10);
     const safeName = spec.replace(/[^a-zA-Z0-9]/g, '-');
     a.href = url;
-    a.download = `medpromo-${safeName}-${dateStr}.json`;
+    a.download = 'medpromo-' + safeName + '-' + dateStr + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showAlert('backup-alert', `✅ ${specProducts.length} products from "${spec}" exported with images! Import into your new app.`, 'success');
+    showAlert('backup-alert', '✅ ' + specProducts.length + ' products from "' + spec + '" exported with images!', 'success');
   } catch(e) {
-    showAlert('backup-alert', 'Export failed — try Text-Only export instead.', 'error');
-  }
-}
-
-// Export ALL specialties one by one with a small delay between each
-async function exportAllSpecialties() {
-  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
-  if (!specs.length) { showAlert('backup-alert', 'No products found.', 'error'); return; }
-  showAlert('backup-alert', `Exporting ${specs.length} specialties one by one... Please allow each download.`, 'success');
-  for (let i = 0; i < specs.length; i++) {
-    const spec = specs[i];
-    const specProducts = products.filter(p => p.specialty === spec);
+    // If with images fails — try without
     try {
       const payload = {
         app: 'MedPromo',
         exportedAt: new Date().toISOString(),
+        textOnly: true,
         specialty: spec,
         productCount: specProducts.length,
-        products: specProducts,
+        products: specProducts.map(stripImages),
         promoSets: promoSets.filter(s => s.specialty === spec),
       };
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -2772,18 +2743,76 @@ async function exportAllSpecialties() {
       const dateStr = new Date().toISOString().slice(0,10);
       const safeName = spec.replace(/[^a-zA-Z0-9]/g, '-');
       a.href = url;
-      a.download = `medpromo-${safeName}-${dateStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.download = 'medpromo-' + safeName + '-' + dateStr + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 3000);
-      // Wait 1.5 seconds between each download so browser doesn't block them
-      await new Promise(r => setTimeout(r, 1500));
+      showAlert('backup-alert', '✅ Exported without images (file too large). Re-add images after import.', 'success');
+    } catch(e2) {
+      showAlert('backup-alert', '❌ Export failed: ' + e2.message, 'error');
+    }
+  }
+}
+
+function exportData() {
+  // Export text-only full backup — always works
+  try {
+    const payload = {
+      app: 'MedPromo',
+      exportedAt: new Date().toISOString(),
+      textOnly: true,
+      productCount: products.length,
+      products: products.map(stripImages),
+      promoSets,
+    };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = 'medpromo-backup-' + dateStr + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showAlert('backup-alert', '✅ Backup downloaded! ' + products.length + ' products (text only). Use Export by Specialty to get images.', 'success');
+  } catch(e) {
+    showAlert('backup-alert', '❌ Export failed: ' + e.message, 'error');
+  }
+}
+
+// Export ALL specialties one by one — WITH images per specialty
+async function exportAllSpecialties() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  if (!specs.length) { showAlert('backup-alert', 'No products found.', 'error'); return; }
+  showAlert('backup-alert', 'Exporting ' + specs.length + ' specialties — please allow each download...', 'success');
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i];
+    const specProducts = products.filter(p => p.specialty === spec);
+    try {
+      const payload = {
+        app: 'MedPromo',
+        exportedAt: new Date().toISOString(),
+        textOnly: false,
+        specialty: spec,
+        productCount: specProducts.length,
+        products: specProducts, // with images — per specialty = small file
+        promoSets: promoSets.filter(s => s.specialty === spec),
+      };
+      const json = JSON.stringify(payload);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0,10);
+      const safeName = spec.replace(/[^a-zA-Z0-9]/g, '-');
+      a.href = url;
+      a.download = 'medpromo-' + safeName + '-' + dateStr + '.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showAlert('backup-alert', '✅ ' + (i+1) + '/' + specs.length + ' — ' + spec + ' exported', 'success');
+      await new Promise(r => setTimeout(r, 2000)); // 2s gap between downloads
     } catch(e) {
       console.error('Failed to export', spec, e);
     }
   }
-  showAlert('backup-alert', `✅ All ${specs.length} specialties exported! Now import each file into your new app.`, 'success');
+  showAlert('backup-alert', '✅ All ' + specs.length + ' specialties exported with images!', 'success');
 }
 
 // Export WITHOUT images — tiny file, never crashes
@@ -2876,7 +2905,7 @@ function importData(input) {
           const pname = (p.name||'').toLowerCase().trim();
 
           if (!existingNames.has(pname) && pname) {
-            // STRIP images — import text data only, no images
+            // Keep images if present in file (specialty exports have images)
             const newP = {
               id: Date.now() + i + Math.floor(Math.random()*100),
               name: p.name || '',
@@ -2888,7 +2917,7 @@ function importData(input) {
               brandRows: p.brandRows || [],
               mrpRows: p.mrpRows || [],
               price: p.price || null,
-              images: [], // NO images — prevents crash
+              images: (p.images && Array.isArray(p.images)) ? p.images : [],
               image: null,
             };
             products.push(newP);
