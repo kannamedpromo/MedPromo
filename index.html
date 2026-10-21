@@ -1242,20 +1242,23 @@ async function initStorage() {
     products = savedProducts || [];
     promoSets = savedSets || [];
 
-    // Load images separately per product
+    // Load images separately per product — try IndexedDB first, then localStorage backup
     for (let i = 0; i < products.length; i++) {
       const p = products[i];
       if (!p.images || p.images.length === 0) {
+        let imgs = null;
+        // Try IndexedDB
         try {
-          const imgs = await idbGet('medpromo_images_' + p.id);
-          if (imgs && imgs.length) {
-            p.images = imgs;
-          } else {
-            p.images = [];
-          }
-        } catch(e) {
-          p.images = [];
+          imgs = await idbGet('medpromo_images_' + p.id);
+        } catch(e) {}
+        // Fallback: localStorage per-product backup
+        if (!imgs || !imgs.length) {
+          try {
+            const raw = localStorage.getItem('medpromo_images_' + p.id);
+            if (raw) imgs = JSON.parse(raw);
+          } catch(le) {}
         }
+        p.images = (imgs && imgs.length) ? imgs : [];
       }
     }
 
@@ -1581,7 +1584,7 @@ function updateSelectOptions() {
 }
 
 // ── ADD / EDIT PRODUCT ──
-function addProduct() {
+async function addProduct() {
   const specialty = document.getElementById('p-specialty').value.trim();
 
   const brandRows = currentBrandRows
@@ -1628,55 +1631,63 @@ function addProduct() {
     products.push(newProduct);
   }
 
-  // ── SAVE — always, even if dbInstance is null ──
-  saveProductsNow();
+  // ── SAVE — await so failure surfaces immediately ──
+  try {
+    await saveProductsNow();
+    showAlert('product-alert', `✅ "${data.name}" saved! Go to Products tab.`, 'success');
+  } catch(e) {
+    showAlert('product-alert', '❌ Save failed — please try again.', 'error');
+    console.error('addProduct save error:', e);
+  }
   clearProductForm();
   updateStats();
   updateSidebarSpecialties();
   updateSelectOptions();
-  showAlert('product-alert', `✅ "${data.name}" saved! Go to Products tab.`, 'success');
 }
 
 // Save products WITH images — images stored separately per product to avoid memory crash
 async function saveProductsNow() {
+  // ── Step 1: Save slim product list (no images) ──
+  const slim = products.map(({images, image, ...rest}) => rest);
   try {
     const db = await getDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-
-    // Save slim products (no images) to main key
-    const slim = products.map(({images, image, ...rest}) => rest);
-    store.put(slim, 'medpromo_products');
-
-    // Save each product's images separately by ID
-    products.forEach(p => {
-      const imgs = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
-      if (imgs.length) {
-        store.put(imgs, 'medpromo_images_' + p.id);
-      }
+    await new Promise((res, rej) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(slim, 'medpromo_products');
+      tx.objectStore(STORE_NAME).put(promoSets, 'medpromo_sets');
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
     });
-
-    // Save promo sets
-    store.put(promoSets, 'medpromo_sets');
-
-    tx.oncomplete = () => console.log('Saved OK — images stored separately');
-    tx.onerror = (e) => console.error('Save failed:', e);
-
-    // localStorage backup — slim only (no images, stays small)
-    try {
-      localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
-      localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
-    } catch(e) {}
-
   } catch(e) {
-    console.error('DB save failed:', e);
-    // localStorage fallback
-    try {
-      const slim = products.map(({images, image, ...rest}) => rest);
-      localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
-      localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
-    } catch(le) {}
+    console.error('Product list save failed:', e);
   }
+  // localStorage backup for slim list
+  try {
+    localStorage.setItem('medpromo_products_backup', JSON.stringify(slim));
+    localStorage.setItem('medpromo_sets_backup', JSON.stringify(promoSets));
+  } catch(e) {}
+
+  // ── Step 2: Save each product's images in its OWN transaction ──
+  for (const p of products) {
+    const imgs = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
+    if (!imgs.length) continue;
+    try {
+      const db = await getDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(imgs, 'medpromo_images_' + p.id);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      // Per-product localStorage backup (individual key, smaller chunks)
+      try {
+        localStorage.setItem('medpromo_images_' + p.id, JSON.stringify(imgs));
+      } catch(le) { /* quota — skip localStorage backup for images */ }
+    } catch(e) {
+      console.error('Image save failed for product ' + p.id + ':', e);
+    }
+  }
+  console.log('saveProductsNow complete — ' + products.length + ' products, images saved individually');
 }
 
 // Returns a product's Brand/Generic name rows, regardless of whether it was
