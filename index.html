@@ -3106,6 +3106,23 @@ function triggerInstall() {
 // ── INIT ──
 initStorage();
 
+// Fallback: if products didn't load (IDB timing issue), force reload after 1.5s
+setTimeout(function() {
+  if (!products || products.length === 0) {
+    console.log('[MedPromo] Fallback: products empty after 1.5s, loading defaults...');
+    products = MEDPROMO_DEFAULTS.slice();
+    updateStats();
+    updateSidebarSpecialties();
+    updateSelectOptions();
+    renderProducts();
+    renderSets();
+    renderPresentPage();
+    console.log('[MedPromo] Fallback loaded:', products.length, 'products');
+  } else {
+    console.log('[MedPromo] Products OK:', products.length);
+  }
+}, 1500);
+
 // ── SERVICE WORKER REGISTRATION — enables offline use ──
 /* service worker disabled */
         });
