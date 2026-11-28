@@ -845,6 +845,7 @@
         <div class="btn-row">
           <button class="btn btn-primary" onclick="showPage('products')">➕ Add Products</button>
           <button class="btn btn-success" onclick="showPage('sets')">📋 Create Promo Set</button>
+          <button class="btn" style="background:#c0392b;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:8px;" onclick="deleteAllGPProducts()">🗑️ Delete All GP Products</button>
         </div>
       </div>
 
@@ -1238,6 +1239,22 @@ async function idbSet(key, value) {
   }
 }
 
+
+// ── DELETE ALL GP PRODUCTS ──
+async function deleteAllGPProducts() {
+  var gpCount = products.filter(function(p) { return String(p.id).startsWith('GP'); }).length;
+  if (gpCount === 0) { alert('No GP products found.'); return; }
+  if (!confirm('Delete all ' + gpCount + ' Genetic Pharma products?\n\nYour Megma products will NOT be affected.\nTap OK to confirm.')) return;
+  products = products.filter(function(p) { return !String(p.id).startsWith('GP'); });
+  try {
+    await idbSet('medpromo_products', products);
+  } catch(e) {}
+  updateStats();
+  updateSidebarSpecialties();
+  updateSelectOptions();
+  renderProducts();
+  alert('✅ All GP products deleted. ' + products.length + ' Megma products remain.\n\nNow you can upload your GP products with images.');
+}
 async function initStorage() {
   // STEP 1: Set defaults immediately — products always visible
   products = MEDPROMO_DEFAULTS.slice();
