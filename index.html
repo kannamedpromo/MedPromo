@@ -846,6 +846,7 @@
           <button class="btn btn-primary" onclick="showPage('products')">➕ Add Products</button>
           <button class="btn btn-success" onclick="showPage('sets')">📋 Create Promo Set</button>
           <button class="btn" style="background:#c0392b;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:8px;" onclick="deleteAllGPProducts()">🗑️ Delete All GP Products</button>
+          <button class="btn" style="background:#8e44ad;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:8px;" onclick="showBulkImageUpload()">📸 Bulk Upload Images</button>
         </div>
       </div>
 
@@ -1254,6 +1255,112 @@ async function deleteAllGPProducts() {
   updateSelectOptions();
   renderProducts();
   alert('✅ All GP products deleted. ' + products.length + ' Megma products remain.\n\nNow you can upload your GP products with images.');
+}
+
+// ── BULK IMAGE UPLOAD ──
+function showBulkImageUpload() {
+  document.getElementById('bulk-image-modal').style.display = 'flex';
+  renderBulkSpecialtyList();
+}
+function hideBulkImageUpload() {
+  document.getElementById('bulk-image-modal').style.display = 'none';
+}
+
+function renderBulkSpecialtyList() {
+  const specs = [...new Set(products.map(p => p.specialty))].filter(Boolean).sort();
+  const sel = document.getElementById('bulk-specialty-select');
+  sel.innerHTML = '<option value="">-- Select Specialty --</option>';
+  specs.forEach(function(s) {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s + ' (' + products.filter(p => p.specialty === s).length + ' products)';
+    sel.appendChild(opt);
+  });
+}
+
+async function bulkAssignImages(input) {
+  const specialty = document.getElementById('bulk-specialty-select').value;
+  if (!specialty) { alert('Please select a specialty first.'); input.value=''; return; }
+
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  // Get products for this specialty that have no images
+  const specProducts = products.filter(function(p) {
+    return p.specialty === specialty;
+  });
+
+  const noImageProducts = specProducts.filter(function(p) {
+    return !p.images || p.images.length === 0;
+  });
+
+  const withImageProducts = specProducts.filter(function(p) {
+    return p.images && p.images.length > 0;
+  });
+
+  const msg = 'Specialty: ' + specialty +
+    '\n\nTotal products: ' + specProducts.length +
+    '\nAlready have images: ' + withImageProducts.length +
+    '\nNeed images: ' + noImageProducts.length +
+    '\n\nImages selected: ' + files.length +
+    '\n\nTap OK to assign images to products (one image per product, in order).';
+
+  if (!confirm(msg)) { input.value=''; return; }
+
+  const statusEl = document.getElementById('bulk-status');
+  statusEl.textContent = 'Starting...';
+  statusEl.style.color = 'green';
+
+  // Assign images to ALL spec products (overwrite or add)
+  const targetProducts = specProducts; // assign to all, starting from first
+  const count = Math.min(files.length, targetProducts.length);
+
+  for (let i = 0; i < count; i++) {
+    const file = files[i];
+    const prod = targetProducts[i];
+
+    await new Promise(function(resolve) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_DIM = 600;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX_DIM) { h = Math.round(h*MAX_DIM/w); w = MAX_DIM; } }
+            else { if (h > MAX_DIM) { w = Math.round(w*MAX_DIM/h); h = MAX_DIM; } }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.5);
+            canvas.width = 0; canvas.height = 0;
+            img.src = '';
+            prod.images = [compressed];
+            statusEl.textContent = 'Assigned ' + (i+1) + ' of ' + count + ' images...';
+          } catch(e) {
+            statusEl.textContent = 'Skipped image ' + (i+1) + ' (error)';
+          }
+          resolve();
+        };
+        img.onerror = function() { resolve(); };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Small delay every 5 images to prevent crash
+    if (i % 5 === 4) await new Promise(r => setTimeout(r, 300));
+  }
+
+  // Save to IDB
+  try {
+    await idbSet('medpromo_products', products);
+  } catch(e) {}
+
+  statusEl.textContent = '✅ Done! ' + count + ' images assigned to ' + specialty + ' products.';
+  input.value = '';
+  renderProducts();
+  updateStats();
 }
 async function initStorage() {
   // STEP 1: Set defaults immediately — products always visible
@@ -2943,11 +3050,19 @@ function importData(input) {
 
           if (!existingNames.has(pname) && pname) {
             // Keep images if present in file (specialty exports have images)
+            // Auto-prefix GP specialty if not already prefixed and not Megma
+            let importedSpecialty = p.specialty || '';
+            if (importedSpecialty &&
+                !importedSpecialty.startsWith('GP ') &&
+                !importedSpecialty.startsWith('MEGMA') &&
+                !importedSpecialty.startsWith('Megma')) {
+              importedSpecialty = 'GP ' + importedSpecialty;
+            }
             const newP = {
               id: Date.now() + i + Math.floor(Math.random()*100),
               name: p.name || '',
               generic: p.generic || '',
-              specialty: p.specialty || '',
+              specialty: importedSpecialty,
               category: p.category || '',
               dosage: p.dosage || '',
               usp: p.usp || '',
@@ -3941,5 +4056,27 @@ function toggleRates(btnEl, panelId) {
   <div id="img-fullscreen-thumbs"></div>
 </div>
 
+
+<!-- BULK IMAGE UPLOAD MODAL -->
+<div id="bulk-image-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;">
+    <h3 style="margin:0 0 16px;color:#1a2d40;">📸 Bulk Image Upload</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">Select a specialty, then choose multiple images from Gallery. Images will be assigned to products in order.</p>
+
+    <label style="font-weight:700;font-size:13px;">Select Specialty:</label>
+    <select id="bulk-specialty-select" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin:8px 0 16px;font-size:14px;">
+      <option value="">-- Select Specialty --</option>
+    </select>
+
+    <label style="font-weight:700;font-size:13px;">Select Images from Gallery:</label>
+    <input type="file" accept="image/*" multiple
+      style="display:block;margin:8px 0 16px;font-size:13px;"
+      onchange="bulkAssignImages(this)">
+
+    <div id="bulk-status" style="font-size:13px;min-height:20px;margin-bottom:16px;"></div>
+
+    <button onclick="hideBulkImageUpload()" style="background:#1a2d40;color:white;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;">Close</button>
+  </div>
+</div>
 </body>
 </html>
